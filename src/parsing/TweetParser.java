@@ -2,6 +2,8 @@ package parsing;
 /**
  * TweetParser
  * 
+ * Parse TREC tweet dataset 
+ * 
  * @author dc
  */
 import java.io.BufferedReader;
@@ -10,6 +12,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
@@ -22,6 +26,7 @@ import com.cybozu.labs.langdetect.LangDetectException;
 
 public class TweetParser {
 	
+	private final static String LANG_BASE = "lang-profiles";
 	private final static String FILE_SUFFIX = ".trectext";
 	private final static String DOC_START = "<DOC>";
 	private final static String DOC_END = "</DOC>";
@@ -33,7 +38,7 @@ public class TweetParser {
 	private final static String HTTP_REGEX = "http://[^ \t]*";
 	
 	private static TweetParser parser;
-	private static File langProfiles = new File("profiles");
+	private static File langProfiles = new File(LANG_BASE);
 
 	private int curDir, curFile;
 	private int endDir, endFile;
@@ -46,6 +51,83 @@ public class TweetParser {
 	private int total, hit;
 	private String readingFile;
 	
+	private DateFormat df;
+	
+	//main method
+	public static void main(String[] args) 
+			throws TweetParserExistsException, WrongFileTypeException, LangDetectException, IOException{
+		if(args.length < 3 || args.length > 7){
+			System.err.println("Usage: java EnglishSnapshotCreator <source dir> <dest file> <language> [<start subdir> <start file> <end subdir> <end file>]");
+			System.exit(1);
+		}
+		
+		//declare basic parameters for parsing tweet collection
+		String srcDir = args[0];
+		String dest = args[1];
+		String lang = args[2];
+		int startDir = 0, startFile = 0, endDir = Integer.MAX_VALUE, endFile = Integer.MAX_VALUE;
+
+		if(args.length == 4){
+			startDir = Integer.parseInt(args[3]);
+		}else if(args.length == 5){
+			startDir = Integer.parseInt(args[3]);
+			startFile = Integer.parseInt(args[4]);
+		}else if(args.length == 6){
+			startDir = Integer.parseInt(args[3]);
+			startFile = Integer.parseInt(args[4]);
+			if(startDir > endDir){
+				System.err.println("The number of ending subdirectory must be larger than the number of starting subdirectory");
+				System.exit(1);
+			}
+			endDir = Integer.parseInt(args[5]);
+		}else if(args.length == 7){
+			startDir = Integer.parseInt(args[3]);
+			startFile = Integer.parseInt(args[4]);
+			if(startDir > endDir){
+				System.err.println("The number of ending subdirectory must be larger than the number of starting subdirectory");
+				System.exit(1);
+			}
+			endDir = Integer.parseInt(args[5]);
+			endFile = Integer.parseInt(args[6]);
+			if(startDir == endDir &&
+					startFile > endFile){
+				System.err.println("The number of ending file must be larger than the number of starting file in the same subdirectory");
+				System.exit(1);
+			}
+		}
+		
+		//new and configure TweetParser instance
+		TweetParser parser = TweetParser.create(srcDir);
+		parser.setLanguage(lang);
+		parser.setStartFile(startDir, startFile);
+		parser.setEndFile(endDir, endFile);
+		
+		//override existing destination file
+		File destFile = new File(dest);
+		if(destFile.exists())
+			destFile.delete();
+		
+		//timing
+		long startTime = System.currentTimeMillis();
+		
+		//write to destination file
+		PrintWriter writer = new PrintWriter(destFile);
+		while(parser.hasNext())
+			writer.write(parser.nextRaw());
+		
+		long endTime = System.currentTimeMillis();
+		long timeElapsed = endTime - startTime;
+		
+		//summary
+		System.out.println(parser.getHits() + "/" + parser.getTotal() + " copied.");
+		System.out.println("time elapsed: " + timeElapsed / 1000 / 60 + "m " 
+				+ timeElapsed / 1000 % 60 + "s " 
+				+ timeElapsed % 1000 + "ms");
+		
+		//clean up
+		writer.close();
+		parser.close();
+	}
 	
 	/**
 	 * create a single instance of TweetsParser
@@ -58,9 +140,9 @@ public class TweetParser {
 	 * @throws FileNotFoundException 
 	 */
 	public static TweetParser create(String dirName) 
-			throws TweetsParserExistsException, FileNotFoundException, WrongFileTypeException, LangDetectException{ 
+			throws TweetParserExistsException, FileNotFoundException, WrongFileTypeException, LangDetectException{ 
 		if(parser != null)
-			throw new TweetsParserExistsException("An instance of TweetsParser has been created.");
+			throw new TweetParserExistsException();
 		parser = new TweetParser(dirName);
 		return parser;
 	}
@@ -152,7 +234,7 @@ public class TweetParser {
 	 * @throws IOException 
 	 * @throws ParseException 
 	 */
-	public boolean hasNext() 
+	public synchronized boolean hasNext() 
 			throws WrongFileTypeException, IOException{
 		boolean isDocStart = false;
 		String line = null;
@@ -207,11 +289,11 @@ public class TweetParser {
 	 * 
 	 * @return - a Tweet instance;
 	 */
-	public Tweet next(){
+	public synchronized Tweet next(){
 		String docNo = buf.get("docno").replaceAll(DOCNO_REGEX, "$1");
 		long datetime;
 		try {
-			 datetime = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(
+			 datetime = df.parse(
 					buf.get("datetime").replaceAll(DATETIME_REGEX, "$1")).getTime();
 		} catch (ParseException e) {
 			datetime = 0;
@@ -228,10 +310,12 @@ public class TweetParser {
 	 * @return - a raw tweet
 	 */
 	public String nextRaw(){
-		return buf.get("docno") + "\n" 
-				+ buf.get("datetime") + "\n" 
-				+ buf.get("user") +"\n"
-				+ buf.get("text") + "\n";
+		StringBuilder sb = new StringBuilder();
+		sb.append(buf.get("docno")).append('\n')
+			.append(buf.get("datetime")).append('\n')
+			.append(buf.get("user")).append('\n')
+			.append(buf.get("text")).append('\n');
+		return sb.toString();
 	}
 	
 	/**
@@ -251,6 +335,7 @@ public class TweetParser {
 			throws IOException{
 		if(reader != null) reader.close();
 		parser = null;
+		
 	}
 	
 	/**
@@ -280,6 +365,8 @@ public class TweetParser {
 		DetectorFactory.loadProfile(langProfiles);
 		setLanguage("all");
 		setIgnoreURL(true);
+		
+		df = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH);
 	}
 	
 	/**
@@ -309,6 +396,7 @@ public class TweetParser {
 			detector.append(text);
 			if(detector.detect().equals(lang))
 				return true;
+			
 		} catch (LangDetectException e) {
 			if(!ignoreURL && text.matches(HTTP_REGEX))
 				return true;
@@ -366,25 +454,3 @@ public class TweetParser {
 	
 }
 
-class TweetsParserExistsException extends Exception{
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-
-	public TweetsParserExistsException(String msg){
-		super(msg);
-	}
-}
-
-class WrongFileTypeException extends Exception{
-	
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-
-	public WrongFileTypeException(String msg){
-		super(msg);
-	}
-}
