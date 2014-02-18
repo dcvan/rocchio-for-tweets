@@ -16,6 +16,7 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
 import com.cybozu.labs.langdetect.LangDetectException;
+import common.exception.FileExistsException;
 
 import parsing.Tweet;
 import parsing.TweetParser;
@@ -45,10 +46,11 @@ public class TweetIndexer {
 	 * @throws WrongFileTypeException 
 	 * @throws IOException 
 	 * @throws TweetIndexerExistsException 
+	 * @throws FileExistsException 
 	 * @throws TweetsParserExistsException 
 	 */
 	public static void main(String[] args) 
-			throws TweetParserExistsException, WrongFileTypeException, LangDetectException, TweetIndexerExistsException, IOException{
+			throws TweetParserExistsException, WrongFileTypeException, LangDetectException, TweetIndexerExistsException, IOException, FileExistsException{
 		if(args.length != 2){
 			System.err.println("<Usage>: java TweetIndexer <tweet dir> <index dir>");
 			System.exit(1);
@@ -81,12 +83,17 @@ public class TweetIndexer {
 	 * @return - a TweetIndexer instance
 	 * @throws TweetIndexerExistsException - when a TweetIndexer instance has been created
 	 * @throws IOException - thrown by constructor
+	 * @throws FileExistsException 
 	 */
 	public static TweetIndexer create(String dir, TweetParser parser) 
-			throws TweetIndexerExistsException, IOException{
+			throws TweetIndexerExistsException, IOException, FileExistsException{
 		if(indexer != null)
 			throw new TweetIndexerExistsException();
-		indexer = new TweetIndexer(dir, parser);
+		File in = new File(dir);
+		if(in.exists())
+			throw new FileExistsException(dir);
+		in.mkdir();
+		indexer = new TweetIndexer(in, parser);
 		return indexer;
 	}
 	
@@ -122,17 +129,10 @@ public class TweetIndexer {
 	 * @throws IOException - when target directory doesn't exist
 	 * 
 	 */
-	private TweetIndexer(String dir, TweetParser parser) 
+	private TweetIndexer(File in, TweetParser parser) 
 			throws IOException{
 		this.parser = parser;
-		File tmpDir = new File(dir);
-		
-		//override existed dir/file at the destination
-		if(tmpDir.exists())
-			tmpDir.delete();
-		tmpDir.mkdirs();
-		
-		indexDir = FSDirectory.open(tmpDir);
+		indexDir = FSDirectory.open(in);
 		analyzer = new StandardAnalyzer(Version.LUCENE_36);
 		writer = new IndexWriter(indexDir, 
 				new IndexWriterConfig(Version.LUCENE_36, analyzer));

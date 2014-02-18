@@ -23,6 +23,7 @@ import java.util.Map;
 import com.cybozu.labs.langdetect.Detector;
 import com.cybozu.labs.langdetect.DetectorFactory;
 import com.cybozu.labs.langdetect.LangDetectException;
+import common.exception.FileExistsException;
 
 public class TweetParser {
 	
@@ -55,7 +56,7 @@ public class TweetParser {
 	
 	//main method
 	public static void main(String[] args) 
-			throws TweetParserExistsException, WrongFileTypeException, LangDetectException, IOException{
+			throws TweetParserExistsException, WrongFileTypeException, LangDetectException, IOException, FileExistsException{
 		if(args.length < 3 || args.length > 7){
 			System.err.println("Usage: java EnglishSnapshotCreator <source dir> <dest file> <language> [<start subdir> <start file> <end subdir> <end file>]");
 			System.exit(1);
@@ -105,8 +106,7 @@ public class TweetParser {
 		//override existing destination file
 		File destFile = new File(dest);
 		if(destFile.exists())
-			destFile.delete();
-		
+			throw new FileExistsException(dest);
 		//timing
 		long startTime = System.currentTimeMillis();
 		
@@ -290,16 +290,16 @@ public class TweetParser {
 	 * @return - a Tweet instance;
 	 */
 	public synchronized Tweet next(){
-		String docNo = buf.get("docno").replaceAll(DOCNO_REGEX, "$1");
+		String docNo = buf.get("docno").replaceAll(DOCNO_REGEX, "$1").trim();
 		long datetime;
 		try {
 			 datetime = df.parse(
-					buf.get("datetime").replaceAll(DATETIME_REGEX, "$1")).getTime();
+					buf.get("datetime").replaceAll(DATETIME_REGEX, "$1").trim()).getTime();
 		} catch (ParseException e) {
 			datetime = 0;
 		}
-		String user = buf.get("user").replaceAll(USER_REGEX, "$1");
-		String text = buf.get("text").replaceAll(TEXT_REGEX, "$1");
+		String user = buf.get("user").replaceAll(USER_REGEX, "$1").trim();
+		String text = buf.get("text").replaceAll(TEXT_REGEX, "$1").trim();
 		
 		return new Tweet(docNo, datetime, user, text);
 	}
