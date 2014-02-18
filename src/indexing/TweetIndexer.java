@@ -135,7 +135,7 @@ public class TweetIndexer {
 		indexDir = FSDirectory.open(tmpDir);
 		analyzer = new StandardAnalyzer(Version.LUCENE_36);
 		writer = new IndexWriter(indexDir, 
-				new IndexWriterConfig(Version.LUCENE_36,analyzer));
+				new IndexWriterConfig(Version.LUCENE_36, analyzer));
 	}
 	
 	/**
