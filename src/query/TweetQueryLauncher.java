@@ -19,8 +19,8 @@ import org.apache.lucene.util.Version;
 
 import query.topic.Topic;
 import query.topic.TopicReader;
-import query.topic.TopicReaderExistsException;
 import common.exception.FileExistsException;
+import common.exception.InstanceExistsException;
 
 public class TweetQueryLauncher {
 	
@@ -36,7 +36,7 @@ public class TweetQueryLauncher {
 	
 	//Tester
 	public static void main(String[] args) 
-			throws TopicReaderExistsException, CorruptIndexException, TweetQueryLauncherExistsException, FileExistsException, IOException, ParseException, org.apache.lucene.queryParser.ParseException{
+			throws  CorruptIndexException, FileExistsException, IOException, ParseException, org.apache.lucene.queryParser.ParseException, InstanceExistsException{
 		if(args.length < 3){
 			System.err.println("<Usage> java TweetQueryLauncher <topic file> <index dir> <result file>");
 			System.exit(1);
@@ -48,7 +48,6 @@ public class TweetQueryLauncher {
 		
 		QueryParser parser = new QueryParser(Version.LUCENE_36, "text", 
 				new StandardAnalyzer(Version.LUCENE_36));
-		System.out.println(parser.getDefaultOperator());
 		TopicReader reader = TopicReader.create(topIn);
 		TweetQueryLauncher launcher = TweetQueryLauncher.create(in, out);
 		
@@ -63,25 +62,24 @@ public class TweetQueryLauncher {
 	}
 	
 	public static TweetQueryLauncher create(String index, String res) 
-			throws TweetQueryLauncherExistsException, FileExistsException, CorruptIndexException, IOException{
+			throws FileExistsException, CorruptIndexException, IOException, InstanceExistsException{
 		if(launcher != null)
-			throw new TweetQueryLauncherExistsException();
+			throw new InstanceExistsException(TweetQueryLauncher.class);
 		File in = new File(index);
 		File out = new File(res);
 		
 		if(out.exists())
 			throw new FileExistsException(res);
-		
 		return new TweetQueryLauncher(in, out);
 	}
 	
-	public synchronized void query(String topNum, Query q) 
+	public synchronized void query(int topNum, Query q) 
 			throws IOException{
+		System.out.println("Currently querying: " + topNum);
 		TopDocs hits = searcher.search(q, Q_NUM);
 		ScoreDoc[] scoreDocs = hits.scoreDocs;
 		for(int i = 0; i < scoreDocs.length; i ++){
 			Document d = searcher.doc(scoreDocs[i].doc);
-			System.out.println(d.get("text"));
 			write(topNum, d.get(DOCNO_FN), i, scoreDocs[i].score);
 		}
 	}
@@ -102,7 +100,7 @@ public class TweetQueryLauncher {
 		writer = new PrintWriter(resFile);
 	}
 	
-	private synchronized void write(String topNo, String docNo, int rank, float score){
+	private synchronized void write(int topNo, String docNo, int rank, float score){
 		StringBuffer sb = new StringBuffer();
 		sb.append(topNo).append(' ')
 			.append("Q0").append(' ')

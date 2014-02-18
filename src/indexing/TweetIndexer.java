@@ -16,12 +16,12 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
 import com.cybozu.labs.langdetect.LangDetectException;
-import common.exception.FileExistsException;
 
+import common.exception.FileExistsException;
+import common.exception.InstanceExistsException;
+import common.exception.WrongFileTypeException;
 import parsing.Tweet;
 import parsing.TweetParser;
-import parsing.TweetParserExistsException;
-import parsing.WrongFileTypeException;
 
 public class TweetIndexer {
 	
@@ -50,7 +50,7 @@ public class TweetIndexer {
 	 * @throws TweetsParserExistsException 
 	 */
 	public static void main(String[] args) 
-			throws TweetParserExistsException, WrongFileTypeException, LangDetectException, TweetIndexerExistsException, IOException, FileExistsException{
+			throws InstanceExistsException, WrongFileTypeException, LangDetectException, IOException, FileExistsException{
 		if(args.length != 2){
 			System.err.println("<Usage>: java TweetIndexer <tweet dir> <index dir>");
 			System.exit(1);
@@ -84,11 +84,12 @@ public class TweetIndexer {
 	 * @throws TweetIndexerExistsException - when a TweetIndexer instance has been created
 	 * @throws IOException - thrown by constructor
 	 * @throws FileExistsException 
+	 * @throws InstanceExistsException 
 	 */
 	public static TweetIndexer create(String dir, TweetParser parser) 
-			throws TweetIndexerExistsException, IOException, FileExistsException{
+			throws IOException, FileExistsException, InstanceExistsException{
 		if(indexer != null)
-			throw new TweetIndexerExistsException();
+			throw new InstanceExistsException(TweetIndexer.class);
 		File in = new File(dir);
 		if(in.exists())
 			throw new FileExistsException(dir);

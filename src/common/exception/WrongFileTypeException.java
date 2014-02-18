@@ -1,4 +1,4 @@
-package parsing;
+package common.exception;
 
 public class WrongFileTypeException extends Exception{
 	/**

@@ -11,10 +11,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
+import common.exception.InstanceExistsException;
+
 public class TopicReader {
 	private final static String TOP_START = "<top>";
 	private final static String TOP_END = "</top>";
-	private final static String TOPNO_REGEX = "<num> Number: (.*)</num>";
+	private final static String TOPNO_REGEX = "<num> Number: MB(.*)</num>";
 	private final static String TITLE_REGEX = "<title>(.*)</title>";
 	private final static String QT_REGEX = "<querytime>(.*)</querytime>";
 	private final static String QTT_REGEX = "<querytweettime>(.*)</querytweettime>";
@@ -37,9 +39,9 @@ public class TopicReader {
 	 * @throws FileNotFoundException
 	 */
 	public static TopicReader create(String topPath) 
-			throws TopicReaderExistsException, FileNotFoundException{
+			throws InstanceExistsException, FileNotFoundException{
 		if(topReader != null)
-			throw new TopicReaderExistsException();
+			throw new InstanceExistsException(TopicReader.class);
 		return new TopicReader(topPath);
 	}
 
@@ -69,7 +71,8 @@ public class TopicReader {
 			
 			if(isTopStart){
 				if(line.matches(TOPNO_REGEX)){
-					top.setTopNo(line.replaceAll(TOPNO_REGEX, "$1").trim());
+					top.setTopNo(Integer.parseInt(
+							line.replaceAll(TOPNO_REGEX, "$1").trim()));
 				}else if(line.matches(TITLE_REGEX)){
 					top.setTitle(line.replaceAll(TITLE_REGEX, "$1").trim());
 				}else if(line.matches(QT_REGEX)){

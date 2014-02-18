@@ -6,7 +6,7 @@ package query.topic;
  *
  */
 public class Topic {
-	private String topNo;
+	private int topNo;
 	private String title;
 	private long queryTime;
 	private long queryTweetTime;
@@ -20,18 +20,18 @@ public class Topic {
 	 * @param qt - query time
 	 * @param qtt - query tweet time
 	 */
-	public Topic(String id, String t, long qt, long qtt){
+	public Topic(int id, String t, long qt, long qtt){
 		topNo = id;
 		title = t;
 		queryTime = qt;
 		queryTweetTime = qtt;
 	}
 
-	public String getTopNo() {
+	public int getTopNo() {
 		return topNo;
 	}
 
-	public void setTopNo(String topNo) {
+	public void setTopNo(int topNo) {
 		this.topNo = topNo;
 	}
 

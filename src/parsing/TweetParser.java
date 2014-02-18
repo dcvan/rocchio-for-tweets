@@ -23,7 +23,10 @@ import java.util.Map;
 import com.cybozu.labs.langdetect.Detector;
 import com.cybozu.labs.langdetect.DetectorFactory;
 import com.cybozu.labs.langdetect.LangDetectException;
+
 import common.exception.FileExistsException;
+import common.exception.InstanceExistsException;
+import common.exception.WrongFileTypeException;
 
 public class TweetParser {
 	
@@ -56,7 +59,7 @@ public class TweetParser {
 	
 	//main method
 	public static void main(String[] args) 
-			throws TweetParserExistsException, WrongFileTypeException, LangDetectException, IOException, FileExistsException{
+			throws WrongFileTypeException, LangDetectException, IOException, FileExistsException, InstanceExistsException{
 		if(args.length < 3 || args.length > 7){
 			System.err.println("Usage: java EnglishSnapshotCreator <source dir> <dest file> <language> [<start subdir> <start file> <end subdir> <end file>]");
 			System.exit(1);
@@ -134,15 +137,15 @@ public class TweetParser {
 	 * 
 	 * @param dirName - the tweets directory
 	 * @return an instance of TweetsParser
-	 * @throws TweetsParserExistsException - when a TweetsParser instance has been created
 	 * @throws WrongFileTypeException 
 	 * @throws LangDetectException 
 	 * @throws FileNotFoundException 
+	 * @throws InstanceExistsException 
 	 */
 	public static TweetParser create(String dirName) 
-			throws TweetParserExistsException, FileNotFoundException, WrongFileTypeException, LangDetectException{ 
+			throws FileNotFoundException, WrongFileTypeException, LangDetectException, InstanceExistsException{ 
 		if(parser != null)
-			throw new TweetParserExistsException();
+			throw new InstanceExistsException(TweetParser.class);
 		parser = new TweetParser(dirName);
 		return parser;
 	}
