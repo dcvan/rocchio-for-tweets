@@ -1,0 +1,5 @@
+Compile trec_eval before running it. 
+	1. tar zxvf trec_eval_latest.tar.gz
+	2. cd trec_eval_9.0
+	3. make
+	4. mv trec_eval ../s

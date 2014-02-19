@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericField;
@@ -14,6 +13,8 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+
+import analyzer.TweetAnalyzer;
 
 import com.cybozu.labs.langdetect.LangDetectException;
 
@@ -94,7 +95,8 @@ public class TweetIndexer {
 		if(in.exists())
 			throw new FileExistsException(dir);
 		in.mkdir();
-		indexer = new TweetIndexer(in, parser);
+		indexer = new TweetIndexer(in, parser, 
+				new TweetAnalyzer());
 		return indexer;
 	}
 	
@@ -130,11 +132,11 @@ public class TweetIndexer {
 	 * @throws IOException - when target directory doesn't exist
 	 * 
 	 */
-	private TweetIndexer(File in, TweetParser parser) 
+	private TweetIndexer(File in, TweetParser parser, Analyzer analyzer) 
 			throws IOException{
 		this.parser = parser;
 		indexDir = FSDirectory.open(in);
-		analyzer = new StandardAnalyzer(Version.LUCENE_36);
+		this.analyzer = analyzer;
 		writer = new IndexWriter(indexDir, 
 				new IndexWriterConfig(Version.LUCENE_36, analyzer));
 	}

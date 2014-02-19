@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.ParseException;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexReader;
@@ -17,6 +16,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
+import analyzer.TweetAnalyzer;
 import query.topic.Topic;
 import query.topic.TopicReader;
 import common.exception.FileExistsException;
@@ -47,7 +47,7 @@ public class TweetQueryLauncher {
 		String out = args[2];
 		
 		QueryParser parser = new QueryParser(Version.LUCENE_36, "text", 
-				new StandardAnalyzer(Version.LUCENE_36));
+				new TweetAnalyzer());
 		TopicReader reader = TopicReader.create(topIn);
 		TweetQueryLauncher launcher = TweetQueryLauncher.create(in, out);
 		
