@@ -27,8 +27,6 @@ public class TweetQueryLauncher {
 	private final static int Q_NUM = 1000;
 	private final static String DOCNO_FN = "docno";
 	
-	private static TweetQueryLauncher launcher;
-	
 	private File indexDir;
 	private File resFile;
 	private IndexSearcher searcher;
@@ -48,8 +46,8 @@ public class TweetQueryLauncher {
 		
 		QueryParser parser = new QueryParser(Version.LUCENE_36, "text", 
 				new TweetAnalyzer());
-		TopicReader reader = TopicReader.create(topIn);
-		TweetQueryLauncher launcher = TweetQueryLauncher.create(in, out);
+		TopicReader reader = new TopicReader(topIn);
+		TweetQueryLauncher launcher = new TweetQueryLauncher(in, out);
 		
 		while(reader.hasNext()){
 			Topic top = reader.next();
@@ -61,16 +59,21 @@ public class TweetQueryLauncher {
 		launcher.close();
 	}
 	
-	public static TweetQueryLauncher create(String index, String res) 
-			throws FileExistsException, CorruptIndexException, IOException, InstanceExistsException{
-		if(launcher != null)
-			throw new InstanceExistsException(TweetQueryLauncher.class);
+	public TweetQueryLauncher(String index, String res) 
+			throws CorruptIndexException, IOException, FileExistsException{
+	
 		File in = new File(index);
 		File out = new File(res);
 		
 		if(out.exists())
 			throw new FileExistsException(res);
-		return new TweetQueryLauncher(in, out);
+		
+		indexDir = in;
+		resFile = out;
+		
+		searcher = new IndexSearcher(IndexReader.open(
+				FSDirectory.open(indexDir)));
+		writer = new PrintWriter(resFile);
 	}
 	
 	public synchronized void query(int topNum, Query q) 
@@ -88,20 +91,9 @@ public class TweetQueryLauncher {
 			throws IOException{
 		searcher.close();
 		writer.close();
-		launcher = null;
 	}
 	
-	private TweetQueryLauncher(File in, File out) 
-			throws CorruptIndexException, IOException{
-		indexDir = in;
-		resFile = out;
-		
-		searcher = new IndexSearcher(IndexReader.open(
-				FSDirectory.open(indexDir)));
-		writer = new PrintWriter(resFile);
-	}
-	
-	private synchronized void write(int topNo, String docNo, int rank, float score){
+	public synchronized void write(int topNo, String docNo, int rank, float score){
 		StringBuffer sb = new StringBuffer();
 		sb.append(topNo).append(' ')
 			.append("Q0").append(' ')

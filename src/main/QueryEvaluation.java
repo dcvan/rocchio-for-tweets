@@ -32,9 +32,9 @@ public class QueryEvaluation {
 		
 		QueryParser parser = new QueryParser(Version.LUCENE_36, "text", 
 				new TweetAnalyzer());
-		TopicReader reader = TopicReader.create(topics);
-		TweetQueryLauncher launcher = TweetQueryLauncher.create(indexDir, result);
-		TweetSearchEvaluator evaluator = TweetSearchEvaluator.create(qrel, result);
+		TopicReader reader = new TopicReader(topics);
+		TweetQueryLauncher launcher = new TweetQueryLauncher(indexDir, result);
+		TweetSearchEvaluator evaluator = new TweetSearchEvaluator(qrel, result);
 		
 		while(reader.hasNext()){
 			Topic t = reader.next();
@@ -53,8 +53,6 @@ public class QueryEvaluation {
 			System.out.println(m + "\t" + res.get(m));
 		}
 		
-		
-		evaluator.close();
 	}
 
 }

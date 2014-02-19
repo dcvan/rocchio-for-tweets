@@ -41,7 +41,6 @@ public class TweetParser {
 	private final static String TEXT_REGEX = "<TEXT>(.*)</TEXT>";
 	private final static String HTTP_REGEX = "http://[^ \t]*";
 	
-	private static TweetParser parser;
 	private static File langProfiles = new File(LANG_BASE);
 
 	private int curDir, curFile;
@@ -101,7 +100,7 @@ public class TweetParser {
 		}
 		
 		//new and configure TweetParser instance
-		TweetParser parser = TweetParser.create(srcDir);
+		TweetParser parser = new TweetParser(srcDir);
 		parser.setLanguage(lang);
 		parser.setStartFile(startDir, startFile);
 		parser.setEndFile(endDir, endFile);
@@ -133,21 +132,34 @@ public class TweetParser {
 	}
 	
 	/**
-	 * create a single instance of TweetsParser
+	 * 1. initialize fields
+	 * 2. load language detection profiles
+	 * 3. change hasCreated to true
 	 * 
 	 * @param dirName - the tweets directory
-	 * @return an instance of TweetsParser
+	 * @throws FileNotFoundException - when the tweets directory cannot be found
+	 * @throws LangDetectException - when the profiles directory cannot be found or profile files are not valid
 	 * @throws WrongFileTypeException 
-	 * @throws LangDetectException 
-	 * @throws FileNotFoundException 
-	 * @throws InstanceExistsException 
 	 */
-	public static TweetParser create(String dirName) 
-			throws FileNotFoundException, WrongFileTypeException, LangDetectException, InstanceExistsException{ 
-		if(parser != null)
-			throw new InstanceExistsException(TweetParser.class);
-		parser = new TweetParser(dirName);
-		return parser;
+	public TweetParser(String dirName) 
+			throws FileNotFoundException, WrongFileTypeException, LangDetectException{
+		rootDir = new File(dirName);
+		checkRootDir();
+		
+		setStartFile(0, 0);
+		setEndFile(Integer.MAX_VALUE, Integer.MAX_VALUE);
+
+		total = 0;
+		hit = 0;
+		readingFile = "";
+		
+		buf = new HashMap<String, String>();
+		
+		DetectorFactory.loadProfile(langProfiles);
+		setLanguage("all");
+		setIgnoreURL(true);
+		
+		df = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH);
 	}
 	
 	/**
@@ -337,40 +349,8 @@ public class TweetParser {
 	public void close() 
 			throws IOException{
 		if(reader != null) reader.close();
-		parser = null;
-		
 	}
 	
-	/**
-	 * 1. initialize fields
-	 * 2. load language detection profiles
-	 * 3. change hasCreated to true
-	 * 
-	 * @param dirName - the tweets directory
-	 * @throws FileNotFoundException - when the tweets directory cannot be found
-	 * @throws LangDetectException - when the profiles directory cannot be found or profile files are not valid
-	 * @throws WrongFileTypeException 
-	 */
-	private TweetParser(String dirName) 
-			throws FileNotFoundException, WrongFileTypeException, LangDetectException{
-		rootDir = new File(dirName);
-		checkRootDir();
-		
-		setStartFile(0, 0);
-		setEndFile(Integer.MAX_VALUE, Integer.MAX_VALUE);
-
-		total = 0;
-		hit = 0;
-		readingFile = "";
-		
-		buf = new HashMap<String, String>();
-		
-		DetectorFactory.loadProfile(langProfiles);
-		setLanguage("all");
-		setIgnoreURL(true);
-		
-		df = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH);
-	}
 	
 	/**
 	 * 

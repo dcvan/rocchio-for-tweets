@@ -21,8 +21,6 @@ public class TweetSearchEvaluator {
 	private final static String TOP_OP = "-q";
 	private final static String METRIC_OP = "-m";
 	
-	private static TweetSearchEvaluator eval;
-	
 	private String qrel;
 	private String result;
 	private Map<String, Map<String, String>> scoreMap;
@@ -35,7 +33,7 @@ public class TweetSearchEvaluator {
 			System.exit(1);
 		}
 		
-		TweetSearchEvaluator eval = TweetSearchEvaluator.create(args[0], args[1]);
+		TweetSearchEvaluator eval = new TweetSearchEvaluator(args[0], args[1]);
 
 		eval.evaluate(new String[]{
 			"map", "P.30", "ndcg"	
@@ -48,21 +46,18 @@ public class TweetSearchEvaluator {
 	}
 	
 	/**
+	 * constructor 
 	 * 
-	 * @param qpath - qrel file path
-	 * @param rpath - result file path
-	 * @return
-	 * @throws FileNotFoundException
-	 * @throws WrongFileTypeException
-	 * @throws InstanceExistsException
+	 * @param q - qrel file path
+	 * @param r - result file path
+	 * @throws WrongFileTypeException 
+	 * @throws InstanceExistsException 
+	 * @throws FileNotFoundException 
 	 */
-	public static TweetSearchEvaluator create(String qpath, String rpath) 
-			throws FileNotFoundException, WrongFileTypeException, InstanceExistsException{
+	public TweetSearchEvaluator(String qpath, String rpath) throws WrongFileTypeException, InstanceExistsException, FileNotFoundException{
 		File q = new File(qpath);
 		File r = new File(rpath);
 		
-		if(eval != null)
-			throw new InstanceExistsException(TweetSearchEvaluator.class);
 		if(!q.exists())
 			throw new FileNotFoundException("Qrel file " + qpath + " not found.");
 		if(!q.isFile())
@@ -73,8 +68,10 @@ public class TweetSearchEvaluator {
 		if(!r.isFile())
 			throw new WrongFileTypeException(rpath + " is not a text file");
 		
-		return new TweetSearchEvaluator(qpath, rpath);
-	}
+		qrel = qpath;
+		result = rpath;
+		scoreMap = new HashMap<String, Map<String, String>>();
+	} 
 	
 	/**
 	 * 
@@ -136,26 +133,5 @@ public class TweetSearchEvaluator {
 			throw new InvalidParameterException("Parameters cannot be null");
 		return scoreMap.get(topno);
 	}
-	
-	/**
-	 * clean up
-	 */
-	public void close(){
-		eval = null;
-	}
-	
-	/**
-	 * constructor 
-	 * 
-	 * @param q - qrel file path
-	 * @param r - result file path
-	 */
-	private TweetSearchEvaluator(String q, String r){
-		qrel = q;
-		result = r;
-		scoreMap = new HashMap<String, Map<String, String>>();
-	} 
-	
-
 	
 }

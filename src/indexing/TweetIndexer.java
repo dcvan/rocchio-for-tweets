@@ -31,13 +31,9 @@ public class TweetIndexer {
 	private final static String USER = "user";
 	private final static String TEXT = "text";
 	
-	private static TweetIndexer indexer;
-	
 	private TweetParser parser;
 	private Directory indexDir;
 	private IndexWriter writer;
-	private Analyzer analyzer;
-	
 	
 	/**
 	 * Main method
@@ -57,11 +53,12 @@ public class TweetIndexer {
 			System.exit(1);
 		}
 		
-		TweetParser parser = TweetParser.create(args[0]);
+		TweetParser parser = new TweetParser(args[0]);
 		String indexDir = args[1];
 		parser.setLanguage("en");
 		
-		TweetIndexer indexer = TweetIndexer.create(indexDir, parser);
+		TweetIndexer indexer = new TweetIndexer(indexDir, parser, 
+				new TweetAnalyzer());
 		
 		long start = System.currentTimeMillis();
 		indexer.run();
@@ -77,27 +74,24 @@ public class TweetIndexer {
 	}
 	
 	/**
-	 * Factory method
+	 * Constructor
 	 * 
 	 * @param dir - target directory of index
 	 * @param parser - TweetParser instance
-	 * @return - a TweetIndexer instance
-	 * @throws TweetIndexerExistsException - when a TweetIndexer instance has been created
-	 * @throws IOException - thrown by constructor
+	 * @throws IOException - when target directory doesn't exist
 	 * @throws FileExistsException 
-	 * @throws InstanceExistsException 
+	 * 
 	 */
-	public static TweetIndexer create(String dir, TweetParser parser) 
-			throws IOException, FileExistsException, InstanceExistsException{
-		if(indexer != null)
-			throw new InstanceExistsException(TweetIndexer.class);
+	public TweetIndexer(String dir, TweetParser parser, Analyzer analyzer) 
+			throws IOException, FileExistsException{
 		File in = new File(dir);
 		if(in.exists())
 			throw new FileExistsException(dir);
 		in.mkdir();
-		indexer = new TweetIndexer(in, parser, 
-				new TweetAnalyzer());
-		return indexer;
+		this.parser = parser;
+		indexDir = FSDirectory.open(in);
+		writer = new IndexWriter(indexDir, 
+				new IndexWriterConfig(Version.LUCENE_36, analyzer));
 	}
 	
 	/**
@@ -122,25 +116,8 @@ public class TweetIndexer {
 			throws CorruptIndexException, IOException{
 		writer.close();
 		indexDir.close();
-		indexer = null;
 	}
 	
-	/**
-	 * Constructor
-	 * 
-	 * @param dir - target directory of index
-	 * @param parser - TweetParser instance
-	 * @throws IOException - when target directory doesn't exist
-	 * 
-	 */
-	private TweetIndexer(File in, TweetParser parser, Analyzer analyzer) 
-			throws IOException{
-		this.parser = parser;
-		indexDir = FSDirectory.open(in);
-		this.analyzer = analyzer;
-		writer = new IndexWriter(indexDir, 
-				new IndexWriterConfig(Version.LUCENE_36, analyzer));
-	}
 	
 	/**
 	 * Add a tweet into the index

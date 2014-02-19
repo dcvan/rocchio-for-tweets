@@ -11,8 +11,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
-import common.exception.InstanceExistsException;
-
 public class TopicReader {
 	private final static String TOP_START = "<top>";
 	private final static String TOP_END = "</top>";
@@ -22,8 +20,6 @@ public class TopicReader {
 	private final static String QTT_REGEX = "<querytweettime>(.*)</querytweettime>";
 	private final static String DATE_FORMAT = "EEE MMM dd kk:mm:ss zzzzz yyyy";
 	
-	private static TopicReader topReader;
-	
 	private File topFile;
 	private BufferedReader reader;
 	private Topic top;
@@ -31,20 +27,16 @@ public class TopicReader {
 	
 	private DateFormat df;
 	
-	/**
-	 * 
-	 * @param topPath
-	 * @return
-	 * @throws TopicReaderExistsException
-	 * @throws FileNotFoundException
-	 */
-	public static TopicReader create(String topPath) 
-			throws InstanceExistsException, FileNotFoundException{
-		if(topReader != null)
-			throw new InstanceExistsException(TopicReader.class);
-		return new TopicReader(topPath);
+	public TopicReader(String topPath) 
+			throws FileNotFoundException{ 
+		topFile = new File(topPath);
+		reader = new BufferedReader(
+					new InputStreamReader(
+							new FileInputStream(topFile)));
+		total = 0;
+		df = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH);
 	}
-
+	
 	/**
 	 * 
 	 * @return
@@ -108,16 +100,6 @@ public class TopicReader {
 	public void close() 
 			throws IOException{
 		reader.close();
-		topReader = null;
 	}
 	
-	private TopicReader(String topPath) 
-			throws FileNotFoundException{ 
-		topFile = new File(topPath);
-		reader = new BufferedReader(
-					new InputStreamReader(
-							new FileInputStream(topFile)));
-		total = 0;
-		df = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH);
-	}
 }
