@@ -88,6 +88,7 @@ public class TweetQueryLauncher {
 			throws IOException{
 		searcher.close();
 		writer.close();
+		launcher = null;
 	}
 	
 	private TweetQueryLauncher(File in, File out) 

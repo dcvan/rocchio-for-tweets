@@ -122,6 +122,7 @@ public class TweetIndexer {
 			throws CorruptIndexException, IOException{
 		writer.close();
 		indexDir.close();
+		indexer = null;
 	}
 	
 	/**

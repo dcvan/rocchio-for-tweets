@@ -108,6 +108,7 @@ public class TopicReader {
 	public void close() 
 			throws IOException{
 		reader.close();
+		topReader = null;
 	}
 	
 	private TopicReader(String topPath) 
