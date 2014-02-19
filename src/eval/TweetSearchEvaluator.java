@@ -5,112 +5,57 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import common.exception.InstanceExistsException;
 import common.exception.InvalidParameterException;
+import common.exception.TweetSearchEvaluatorException;
 import common.exception.WrongFileTypeException;
 
 public class TweetSearchEvaluator {
-	private final static String TREC_EVAL = "trec_eval/trec_eval -q -m ";
+	private final static String TREC_EVAL = "trec_eval/trec_eval";
+	private final static String TOP_OP = "-q";
+	private final static String METRIC_OP = "-m";
 	
-	private static Set<String> metrics = new HashSet<String>();
-	static{
-		metrics.add("map");
-		metrics.add("gm_map");
-		metrics.add("rprec");
-		metrics.add("bpref");
-		metrics.add("recip_rank");
-		metrics.add("iprec_at_recall_0.00");
-		metrics.add("iprec_at_recall_0.10");
-		metrics.add("iprec_at_recall_0.20");
-		metrics.add("iprec_at_recall_0.30");
-		metrics.add("iprec_at_recall_0.40");
-		metrics.add("iprec_at_recall_0.50");
-		metrics.add("iprec_at_recall_0.60");
-		metrics.add("iprec_at_recall_0.70");
-		metrics.add("iprec_at_recall_0.80");
-		metrics.add("iprec_at_recall_0.90");
-		metrics.add("iprec_at_recall_1.00");
-		metrics.add("p_5");
-		metrics.add("p_10");
-		metrics.add("p_15");
-		metrics.add("p_20");
-		metrics.add("p_30");
-		metrics.add("p_100");
-		metrics.add("p_200");
-		metrics.add("p_500");
-		metrics.add("p_1000");
-		metrics.add("recall_5");
-		metrics.add("recall_10");
-		metrics.add("recall_15");
-		metrics.add("recall_20");
-		metrics.add("recall_30");
-		metrics.add("recall_100");
-		metrics.add("recall_200");
-		metrics.add("recall_500");
-		metrics.add("recall_1000");
-		metrics.add("infap");
-		metrics.add("gm_bpref");
-		metrics.add("rprec_mult_0.20");
-		metrics.add("rprec_mult_0.40");
-		metrics.add("rprec_mult_0.60");
-		metrics.add("rprec_mult_0.80");
-		metrics.add("rprec_mult_1.00");
-		metrics.add("rprec_mult_1.20");
-		metrics.add("rprec_mult_1.40");
-		metrics.add("rprec_mult_1.60");
-		metrics.add("rprec_mult_1.80");
-		metrics.add("rprec_mult_2.00");
-		metrics.add("utility");
-		metrics.add("11pt_avg");
-		metrics.add("bing");
-		metrics.add("g");
-		metrics.add("ndcg");
-		metrics.add("ndcg_rel");
-		metrics.add("rndcg");
-		metrics.add("ndcg_cut_5");
-		metrics.add("ndcg_cut_10");
-		metrics.add("ndcg_cut_15");
-		metrics.add("ndcg_cut_20");
-		metrics.add("ndcg_cut_30");
-		metrics.add("ndcg_cut_100");
-		metrics.add("ndcg_cut_200");
-		metrics.add("ndcg_cut_500");
-		metrics.add("ndcg_cut_1000");
-		metrics.add("relative_p_5");
-		metrics.add("relative_p_10");
-		metrics.add("relative_p_15");
-		metrics.add("relative_p_20");
-		metrics.add("relative_p_30");
-		metrics.add("relative_p_100");
-		metrics.add("relative_p_200");
-		metrics.add("relative_p_500");
-		metrics.add("relative_p_1000");
-		metrics.add("success_1");
-		metrics.add("success_5");
-		metrics.add("success_10");
-		metrics.add("set_p");
-		metrics.add("set_relative_p");
-		metrics.add("set_recall");
-		metrics.add("set_map");
-		metrics.add("set_f");
-		metrics.add("all_trec");
-	}
 	private static TweetSearchEvaluator eval;
 	
 	private String qrel;
 	private String result;
+	private Map<String, Map<String, String>> scoreMap;
 	
+	//Tester
 	public static void main(String[] args) 
-			throws WrongFileTypeException, InstanceExistsException, IOException, InvalidParameterException{
-		TweetSearchEvaluator eval = TweetSearchEvaluator.create("test-collection/microblog11-qrels.txt", 
-				"test-collection/result.txt.2");
+			throws WrongFileTypeException, InstanceExistsException, IOException, InvalidParameterException, TweetSearchEvaluatorException{
+		if(args.length < 2){
+			System.err.println("<Usage> java TweetSearchEvaluator <qrel> <result>");
+			System.exit(1);
+		}
 		
-		System.out.println(eval.evaluate());
+		TweetSearchEvaluator eval = TweetSearchEvaluator.create(args[0], args[1]);
+
+		eval.evaluate(new String[]{
+			"map", "P.30", "ndcg"	
+		}, false);
+		
+		Map<String, String> res = eval.getScores("all");
+		for(String m : res.keySet()){
+			System.out.println(m + "\t" + res.get(m));
+		}
 	}
 	
+	/**
+	 * 
+	 * @param qpath - qrel file path
+	 * @param rpath - result file path
+	 * @return
+	 * @throws FileNotFoundException
+	 * @throws WrongFileTypeException
+	 * @throws InstanceExistsException
+	 */
 	public static TweetSearchEvaluator create(String qpath, String rpath) 
 			throws FileNotFoundException, WrongFileTypeException, InstanceExistsException{
 		File q = new File(qpath);
@@ -131,65 +76,84 @@ public class TweetSearchEvaluator {
 		return new TweetSearchEvaluator(qpath, rpath);
 	}
 	
-	public String evaluate() 
-			throws IOException, InvalidParameterException{
-		return evaluate("all", "all");
-	}
-	
-	public String evaluate(String metric) 
-			throws IOException, InvalidParameterException{
-		return evaluate(metric, "all");
-	}
-	
-	public String evaluate(int topNo) 
-			throws IOException, InvalidParameterException{
-		return evaluate("all", String.valueOf(topNo));
-	}
-	
-	public String evaluate(String metric, String topNo) 
-			throws IOException, InvalidParameterException{
-		metric = metric.toLowerCase();
-		if("all".equals(metric))
-			metric = "all_trec";
-		if(metric == null || !metrics.contains(metric))
-			throw new InvalidParameterException(metric);
-		if(topNo == null || 
-				(!"all".equals(topNo) && !topNo.matches("[0-9]+")))
-			throw new InvalidParameterException(topNo);
+	/**
+	 * 
+	 * @param metrics - a list of evaluation metrics 
+	 * @param forEach - whether include evaluation for each query or not
+	 * @throws InvalidParameterException
+	 * @throws IOException
+	 * @throws TweetSearchEvaluatorException
+	 */
+	public void evaluate(String[] metrics, boolean forEach) 
+			throws InvalidParameterException, IOException, TweetSearchEvaluatorException{
+		if(metrics == null)
+			throw new InvalidParameterException("Parameters cannot be null");
+		if(metrics.length == 0)
+			throw new InvalidParameterException("Parameters cannot be empty");
 		
-		StringBuilder cb = new StringBuilder();
-		StringBuilder res = new StringBuilder();
-		cb.append(TREC_EVAL)
-			.append(metric).append(' ')
-			.append(qrel).append(' ')
-			.append(result);
+		Set<String> mset = new HashSet<String>(Arrays.asList(metrics));
+		
+		StringBuilder cb = new StringBuilder(TREC_EVAL + ' ');
+		if(forEach) cb.append(TOP_OP + ' ');
+		for(String m : mset)
+			cb.append(METRIC_OP + ' ' + m + ' ');
+		cb.append(qrel + ' ' + result);
 		
 		Process p = Runtime.getRuntime().exec(cb.toString());
-		String line;
-		
 		BufferedReader resReader = new BufferedReader(
 				new InputStreamReader(p.getInputStream()));
-		while((line = resReader.readLine()) != null){
-			String[] fields = line.split("\t");
-			if(topNo.equals(fields[1]))
-				res.append(line).append('\n');
-		}
-		resReader.close();
-			
 		BufferedReader errReader = new BufferedReader(
 				new InputStreamReader(p.getErrorStream()));
-		line = null;
-		while((line = errReader.readLine()) != null){
-			res.append(line).append('\n');
+		String line;
+		while((line = resReader.readLine()) != null){
+			String[] fs = line.split("\t");
+
+			if(scoreMap.containsKey(fs[1])){
+				scoreMap.get(fs[1]).put(fs[0], fs[2]);
+			}else{
+				Map<String, String> msmap = new HashMap<String, String>();
+				msmap.put(fs[0], fs[2]);
+				scoreMap.put(fs[1], msmap);
+			}
 		}
-		errReader.close();
 		
-		return res.toString();
+		StringBuilder errMsg = new StringBuilder();
+		while((line = errReader.readLine()) != null)
+			errMsg.append(line + '\n');
+		if(errMsg.length() > 0)
+			throw new TweetSearchEvaluatorException(errMsg.toString());
 	}
 	
+	/**
+	 * 
+	 * @param topno - query number
+	 * @return 
+	 * @throws InvalidParameterException
+	 */
+	public Map<String, String> getScores(String topno) 
+			throws InvalidParameterException{
+		if(topno == null)
+			throw new InvalidParameterException("Parameters cannot be null");
+		return scoreMap.get(topno);
+	}
+	
+	/**
+	 * clean up
+	 */
+	public void close(){
+		eval = null;
+	}
+	
+	/**
+	 * constructor 
+	 * 
+	 * @param q - qrel file path
+	 * @param r - result file path
+	 */
 	private TweetSearchEvaluator(String q, String r){
 		qrel = q;
 		result = r;
+		scoreMap = new HashMap<String, Map<String, String>>();
 	} 
 	
 
