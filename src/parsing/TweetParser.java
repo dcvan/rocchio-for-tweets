@@ -30,7 +30,7 @@ import common.exception.WrongFileTypeException;
 
 public class TweetParser {
 	
-	private final static String LANG_BASE = "lang-profiles";
+	private final static String LANG_BASE =  "lang-profiles";
 	private final static String FILE_SUFFIX = ".trectext";
 	private final static String DOC_START = "<DOC>";
 	private final static String DOC_END = "</DOC>";
@@ -100,7 +100,7 @@ public class TweetParser {
 		}
 		
 		//new and configure TweetParser instance
-		TweetParser parser = new TweetParser(srcDir);
+		TweetParser parser = new TweetParser(srcDir, LANG_BASE);
 		parser.setLanguage(lang);
 		parser.setStartFile(startDir, startFile);
 		parser.setEndFile(endDir, endFile);
@@ -141,7 +141,7 @@ public class TweetParser {
 	 * @throws LangDetectException - when the profiles directory cannot be found or profile files are not valid
 	 * @throws WrongFileTypeException 
 	 */
-	public TweetParser(String dirName) 
+	public TweetParser(String dirName, String langBase) 
 			throws FileNotFoundException, WrongFileTypeException, LangDetectException{
 		rootDir = new File(dirName);
 		checkRootDir();
@@ -155,7 +155,7 @@ public class TweetParser {
 		
 		buf = new HashMap<String, String>();
 		
-		DetectorFactory.loadProfile(langProfiles);
+		DetectorFactory.loadProfile(langBase);
 		setLanguage("all");
 		setIgnoreURL(true);
 		

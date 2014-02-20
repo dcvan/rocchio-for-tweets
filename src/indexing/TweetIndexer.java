@@ -26,6 +26,7 @@ import parsing.TweetParser;
 
 public class TweetIndexer {
 	
+	private final static String LANG_BASE = "lang-profile";
 	private final static String DOCNO = "docno";
 	private final static String DATETIME = "datetime";
 	private final static String USER = "user";
@@ -53,7 +54,7 @@ public class TweetIndexer {
 			System.exit(1);
 		}
 		
-		TweetParser parser = new TweetParser(args[0]);
+		TweetParser parser = new TweetParser(args[0], LANG_BASE);
 		String indexDir = args[1];
 		parser.setLanguage("en");
 		
