@@ -7,8 +7,8 @@ import java.text.ParseException;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -34,7 +34,7 @@ public class TweetQueryLauncher {
 	
 	//Tester
 	public static void main(String[] args) 
-			throws  CorruptIndexException, FileExistsException, IOException, ParseException, org.apache.lucene.queryParser.ParseException, InstanceExistsException{
+			throws  CorruptIndexException, FileExistsException, IOException, ParseException, InstanceExistsException, org.apache.lucene.queryparser.classic.ParseException{
 		if(args.length < 3){
 			System.err.println("<Usage> java TweetQueryLauncher <topic file> <index dir> <result file>");
 			System.exit(1);
@@ -44,8 +44,8 @@ public class TweetQueryLauncher {
 		String in = args[1];
 		String out = args[2];
 		
-		QueryParser parser = new QueryParser(Version.LUCENE_36, "text", 
-				new TweetAnalyzer());
+		QueryParser parser = new QueryParser(Version.LUCENE_46, "text", 
+				new TweetAnalyzer(Version.LUCENE_46));
 		TopicReader reader = new TopicReader(topIn);
 		TweetQueryLauncher launcher = new TweetQueryLauncher(in, out);
 		
@@ -71,7 +71,7 @@ public class TweetQueryLauncher {
 		indexDir = in;
 		resFile = out;
 		
-		searcher = new IndexSearcher(IndexReader.open(
+		searcher = new IndexSearcher(DirectoryReader.open(
 				FSDirectory.open(indexDir)));
 		writer = new PrintWriter(resFile);
 	}
@@ -89,7 +89,6 @@ public class TweetQueryLauncher {
 	
 	public void close() 
 			throws IOException{
-		searcher.close();
 		writer.close();
 	}
 	

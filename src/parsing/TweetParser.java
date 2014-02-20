@@ -41,8 +41,6 @@ public class TweetParser {
 	private final static String TEXT_REGEX = "<TEXT>(.*)</TEXT>";
 	private final static String HTTP_REGEX = "http://[^ \t]*";
 	
-	private static File langProfiles = new File(LANG_BASE);
-
 	private int curDir, curFile;
 	private int endDir, endFile;
 	private File rootDir;

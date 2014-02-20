@@ -6,7 +6,9 @@ import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericField;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -26,7 +28,7 @@ import parsing.TweetParser;
 
 public class TweetIndexer {
 	
-	private final static String LANG_BASE = "lang-profile";
+	private final static String LANG_BASE = "lang-profiles";
 	private final static String DOCNO = "docno";
 	private final static String DATETIME = "datetime";
 	private final static String USER = "user";
@@ -36,6 +38,8 @@ public class TweetIndexer {
 	private Directory indexDir;
 	private IndexWriter writer;
 	
+	private FieldType userType;
+	private FieldType textType;
 	/**
 	 * Main method
 	 * 
@@ -59,7 +63,7 @@ public class TweetIndexer {
 		parser.setLanguage("en");
 		
 		TweetIndexer indexer = new TweetIndexer(indexDir, parser, 
-				new TweetAnalyzer());
+				new TweetAnalyzer(Version.LUCENE_46));
 		
 		long start = System.currentTimeMillis();
 		indexer.run();
@@ -92,7 +96,18 @@ public class TweetIndexer {
 		this.parser = parser;
 		indexDir = FSDirectory.open(in);
 		writer = new IndexWriter(indexDir, 
-				new IndexWriterConfig(Version.LUCENE_36, analyzer));
+				new IndexWriterConfig(Version.LUCENE_46, analyzer));
+		
+		userType = new FieldType(TextField.TYPE_STORED);
+		userType.setOmitNorms(false);
+		userType.setTokenized(false);
+		userType.setStoreTermVectors(true);
+		userType.setStoreTermVectorPositions(true);
+		
+		textType = new FieldType(TextField.TYPE_STORED);
+		textType.setOmitNorms(false);
+		textType.setStoreTermVectors(true);
+		textType.setStoreTermVectorPositions(true);
 	}
 	
 	/**
@@ -130,21 +145,14 @@ public class TweetIndexer {
 	private void addTweet(Tweet t) 
 			throws CorruptIndexException, IOException{
 		Document doc = new Document();
+		
 		//index DOCNO and DATETIME as numerics
-		doc.add(new NumericField(DOCNO, Field.Store.YES, false).setLongValue(
-					Long.parseLong(
-							t.getDocNo())));
-		doc.add(new NumericField(DATETIME, Field.Store.YES, false).setLongValue(
-				t.getDateTime()));
+		doc.add(new LongField(DOCNO, Long.parseLong(t.getDocNo()), LongField.TYPE_STORED));
+		doc.add(new LongField(DATETIME, t.getDateTime(), LongField.TYPE_STORED));
+		doc.add(new Field(USER, t.getUser(), userType));
+		doc.add(new Field(TEXT, t.getText(), textType));
 
-		doc.add(new Field(USER,
-				t.getUser(),
-				Field.Store.YES,
-				Field.Index.NOT_ANALYZED_NO_NORMS));
-		doc.add(new Field(TEXT,
-				t.getText(),
-				Field.Store.YES,
-				Field.Index.ANALYZED));
 		writer.addDocument(doc);
 	}
+	
 }

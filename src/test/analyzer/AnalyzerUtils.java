@@ -15,36 +15,40 @@ package test.analyzer;
  * See the License for the specific lan      
 */
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.SimpleAnalyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.TermAttribute;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.util.Version;
 
 import java.io.IOException;
 import java.io.StringReader;
 
-import junit.framework.Assert;
-
 // From chapter 4
 public class AnalyzerUtils {
   public static void displayTokens(Analyzer analyzer,
                                    String text) throws IOException {
-    displayTokens(analyzer.tokenStream("contents", new StringReader(text)));  //A
+	 TokenStream tok = analyzer.tokenStream("contents", new StringReader(text));
+	 displayTokens(tok);  //A
   }
 
   public static void displayTokens(TokenStream stream)
     throws IOException {
-
-    TermAttribute term = stream.addAttribute(TermAttribute.class);
+	 stream.reset();
+    CharTermAttribute term = stream.addAttribute(CharTermAttribute.class);
     while(stream.incrementToken()) {
-      System.out.print("[" + term.term() + "] ");    //B
+      System.out.print("[" + term + "] ");    //B
     }
+    stream.close();
   }
   /*
     #A Invoke analysis process
@@ -57,8 +61,8 @@ public class AnalyzerUtils {
   }
 
   public static String getTerm(AttributeSource source) {
-    TermAttribute attr = source.addAttribute(TermAttribute.class);
-    return attr.term();
+    CharTermAttribute attr = source.addAttribute(CharTermAttribute.class);
+    return attr.toString();
   }
 
   public static String getType(AttributeSource source) {
@@ -72,8 +76,8 @@ public class AnalyzerUtils {
   }
 
   public static void setTerm(AttributeSource source, String term) {
-    TermAttribute attr = source.addAttribute(TermAttribute.class);
-    attr.setTermBuffer(term);
+    CharTermAttribute attr = source.addAttribute(CharTermAttribute.class);
+    attr.copyBuffer(term.toCharArray(), 0, term.length());
   }
 
   public static void setType(AttributeSource source, String type) {
@@ -86,9 +90,9 @@ public class AnalyzerUtils {
 
     TokenStream stream = analyzer.tokenStream("contents",
                                               new StringReader(text));
-    TermAttribute term = stream.addAttribute(TermAttribute.class);
+    CharTermAttribute term = stream.addAttribute(CharTermAttribute.class);
     PositionIncrementAttribute posIncr = stream.addAttribute(PositionIncrementAttribute.class);
-
+    stream.reset();
     int position = 0;
     while(stream.incrementToken()) {
       int increment = posIncr.getPositionIncrement();
@@ -98,9 +102,10 @@ public class AnalyzerUtils {
         System.out.print(position + ": ");
       }
 
-      System.out.print("[" + term.term() + "] ");
+      System.out.print("[" + term + "] ");
     }
     System.out.println();
+    stream.close();
   }
 
   public static void displayTokensWithFullDetails(Analyzer analyzer,
@@ -109,12 +114,13 @@ public class AnalyzerUtils {
     TokenStream stream = analyzer.tokenStream("contents",                        // #A
                                               new StringReader(text));
 
-    TermAttribute term = stream.addAttribute(TermAttribute.class);        // #B
+    CharTermAttribute term = stream.addAttribute(CharTermAttribute.class);        // #B
     PositionIncrementAttribute posIncr =                                  // #B 
     	stream.addAttribute(PositionIncrementAttribute.class);              // #B
     OffsetAttribute offset = stream.addAttribute(OffsetAttribute.class);  // #B
     TypeAttribute type = stream.addAttribute(TypeAttribute.class);        // #B
 
+    stream.reset();
     int position = 0;
     while(stream.incrementToken()) {                                  // #C
 
@@ -126,12 +132,13 @@ public class AnalyzerUtils {
       }
 
       System.out.print("[" +                                 // #E
-                       term.term() + ":" +                   // #E
+                       term + ":" +                   // #E
                        offset.startOffset() + "->" +         // #E
                        offset.endOffset() + ":" +            // #E
                        type.type() + "] ");                  // #E
     }
     System.out.println();
+    stream.close();
   }
   /*
     #A Perform analysis
@@ -145,12 +152,12 @@ public class AnalyzerUtils {
                                       String[] output) throws Exception {
     TokenStream stream = analyzer.tokenStream("field", new StringReader(input));
 
-    TermAttribute termAttr = stream.addAttribute(TermAttribute.class);
+    CharTermAttribute termAttr = stream.addAttribute(CharTermAttribute.class);
     for (String expected : output) {
-      Assert.assertTrue(stream.incrementToken());
-      Assert.assertEquals(expected, termAttr.term());
+    assertTrue(stream.incrementToken());
+    assertEquals(expected, termAttr.toString());
     }
-    Assert.assertFalse(stream.incrementToken());
+    assertFalse(stream.incrementToken());
     stream.close();
   }
 
@@ -165,12 +172,12 @@ public class AnalyzerUtils {
 
   public static void main(String[] args) throws IOException {
     System.out.println("SimpleAnalyzer");
-    displayTokensWithFullDetails(new SimpleAnalyzer(),
+    displayTokensWithFullDetails(new SimpleAnalyzer(Version.LUCENE_46),
         "The quick brown fox....");
 
     System.out.println("\n----");
     System.out.println("StandardAnalyzer");
-    displayTokensWithFullDetails(new StandardAnalyzer(Version.LUCENE_30),
+    displayTokensWithFullDetails(new StandardAnalyzer(Version.LUCENE_46),
         "I'll email you at xyz@example.com");
   }
 }

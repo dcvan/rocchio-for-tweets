@@ -5,7 +5,7 @@ import java.text.ParseException;
 import java.util.Map;
 
 import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.util.Version;
 
 import common.exception.FileExistsException;
@@ -22,7 +22,7 @@ import query.topic.TopicReader;
 public class QueryEvaluation {
 
 	public static void main(String[] args) 
-			throws InstanceExistsException, CorruptIndexException, FileExistsException, IOException, ParseException, org.apache.lucene.queryParser.ParseException, WrongFileTypeException, InvalidParameterException, TweetSearchEvaluatorException {
+			throws InstanceExistsException, CorruptIndexException, FileExistsException, IOException, ParseException, WrongFileTypeException, InvalidParameterException, TweetSearchEvaluatorException, org.apache.lucene.queryparser.classic.ParseException {
 		if(args.length < 4){
 			System.err.println("<Usage> java QueryEvaluation <topic file> <index dir> <qrel file> <result file>");
 			System.exit(1);
@@ -30,8 +30,8 @@ public class QueryEvaluation {
 		
 		String topics = args[0], indexDir = args[1], qrel = args[2], result = args[3];
 		
-		QueryParser parser = new QueryParser(Version.LUCENE_36, "text", 
-				new TweetAnalyzer());
+		QueryParser parser = new QueryParser(Version.LUCENE_46, "text", 
+				new TweetAnalyzer(Version.LUCENE_46));
 		TopicReader reader = new TopicReader(topics);
 		TweetQueryLauncher launcher = new TweetQueryLauncher(indexDir, result);
 		TweetSearchEvaluator evaluator = new TweetSearchEvaluator(qrel, result);
