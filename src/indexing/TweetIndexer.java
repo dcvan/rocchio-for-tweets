@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -28,29 +29,7 @@ import parsing.TweetParser;
 
 public class TweetIndexer {
 	
-	private final static String LANG_BASE = "lang-profiles";
-	private final static String DOCNO = "docno";
-	private final static String DATETIME = "datetime";
-	private final static String USER = "user";
-	private final static String TEXT = "text";
-	
-	private TweetParser parser;
-	private Directory indexDir;
-	private IndexWriter writer;
-	
-	private FieldType userType;
-	private FieldType textType;
-	/**
-	 * Main method
-	 * 
-	 * @param args
-	 * @throws LangDetectException 
-	 * @throws WrongFileTypeException 
-	 * @throws IOException 
-	 * @throws TweetIndexerExistsException 
-	 * @throws FileExistsException 
-	 * @throws TweetsParserExistsException 
-	 */
+	//Tester
 	public static void main(String[] args) 
 			throws InstanceExistsException, WrongFileTypeException, LangDetectException, IOException, FileExistsException{
 		if(args.length != 2){
@@ -62,8 +41,9 @@ public class TweetIndexer {
 		String indexDir = args[1];
 		parser.setLanguage("en");
 		
-		TweetIndexer indexer = new TweetIndexer(indexDir, parser, 
-				new TweetAnalyzer(Version.LUCENE_46));
+		TweetIndexer indexer = new TweetIndexer(indexDir, parser,
+				new EnglishAnalyzer(Version.LUCENE_46));
+//				new TweetAnalyzer(Version.LUCENE_46));
 		
 		long start = System.currentTimeMillis();
 		indexer.run();
@@ -77,6 +57,19 @@ public class TweetIndexer {
 		parser.close();
 		indexer.close();
 	}
+	
+	private final static String LANG_BASE = "lang-profiles";
+	private final static String DOCNO = "docno";
+	private final static String DATETIME = "datetime";
+	private final static String USER = "user";
+	private final static String TEXT = "text";
+	
+	private TweetParser parser;
+	private Directory indexDir;
+	private IndexWriter writer;
+	
+	private FieldType userType;
+	private FieldType textType;
 	
 	/**
 	 * Constructor

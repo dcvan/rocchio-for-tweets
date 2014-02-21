@@ -17,14 +17,6 @@ import common.exception.TweetSearchEvaluatorException;
 import common.exception.WrongFileTypeException;
 
 public class TweetSearchEvaluator {
-	private final static String TREC_EVAL = "trec_eval/trec_eval";
-	private final static String TOP_OP = "-q";
-	private final static String METRIC_OP = "-m";
-	
-	private String qrel;
-	private String result;
-	private Map<String, Map<String, String>> scoreMap;
-	
 	//Tester
 	public static void main(String[] args) 
 			throws WrongFileTypeException, InstanceExistsException, IOException, InvalidParameterException, TweetSearchEvaluatorException{
@@ -44,6 +36,14 @@ public class TweetSearchEvaluator {
 			System.out.println(m + "\t" + res.get(m));
 		}
 	}
+	
+	private final static String TREC_EVAL = "trec_eval/trec_eval";
+	private final static String TOP_OP = "-q";
+	private final static String METRIC_OP = "-m";
+	
+	private String qrel;
+	private String result;
+	private Map<String, Map<String, String>> scoreMap;
 	
 	/**
 	 * constructor 

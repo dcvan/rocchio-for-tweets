@@ -30,31 +30,7 @@ import common.exception.WrongFileTypeException;
 
 public class TweetParser {
 	
-	private final static String LANG_BASE =  "lang-profiles";
-	private final static String FILE_SUFFIX = ".trectext";
-	private final static String DOC_START = "<DOC>";
-	private final static String DOC_END = "</DOC>";
-	private final static String DOCNO_REGEX= "<DOCNO>(.*)</DOCNO>";
-	private final static String DATETIME_REGEX = "<DATETIME>(.*)</DATETIME>";
-	private final static String DATE_FORMAT = "EEE MMM dd kk:mm:ss z yyyy";
-	private final static String USER_REGEX = "<USER>(.*)</USER>";
-	private final static String TEXT_REGEX = "<TEXT>(.*)</TEXT>";
-	private final static String HTTP_REGEX = "http://[^ \t]*";
-	
-	private int curDir, curFile;
-	private int endDir, endFile;
-	private File rootDir;
-	private Map<String, String> buf;
-	private BufferedReader reader;
-	private String lang;
-	private boolean ignoreURL;
-	
-	private int total, hit;
-	private String readingFile;
-	
-	private DateFormat df;
-	
-	//main method
+	//Tester
 	public static void main(String[] args) 
 			throws WrongFileTypeException, LangDetectException, IOException, FileExistsException, InstanceExistsException{
 		if(args.length < 3 || args.length > 7){
@@ -128,6 +104,30 @@ public class TweetParser {
 		writer.close();
 		parser.close();
 	}
+	
+	private final static String LANG_BASE =  "lang-profiles";
+	private final static String FILE_SUFFIX = ".trectext";
+	private final static String DOC_START = "<DOC>";
+	private final static String DOC_END = "</DOC>";
+	private final static String DOCNO_REGEX= "<DOCNO>(.*)</DOCNO>";
+	private final static String DATETIME_REGEX = "<DATETIME>(.*)</DATETIME>";
+	private final static String DATE_FORMAT = "EEE MMM dd kk:mm:ss z yyyy";
+	private final static String USER_REGEX = "<USER>(.*)</USER>";
+	private final static String TEXT_REGEX = "<TEXT>(.*)</TEXT>";
+	private final static String HTTP_REGEX = "http://[^ \t]*";
+	
+	private int curDir, curFile;
+	private int endDir, endFile;
+	private File rootDir;
+	private Map<String, String> buf;
+	private BufferedReader reader;
+	private String lang;
+	private boolean ignoreURL;
+	
+	private int total, hit;
+	private String readingFile;
+	
+	private DateFormat df;
 	
 	/**
 	 * 1. initialize fields
