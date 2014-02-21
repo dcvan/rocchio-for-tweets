@@ -16,7 +16,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
-import analyzer.TweetAnalyzer;
+import analysis.TweetAnalyzer;
 import query.topic.Topic;
 import query.topic.TopicReader;
 import common.exception.FileExistsException;

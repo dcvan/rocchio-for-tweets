@@ -16,7 +16,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
-import analyzer.TweetAnalyzer;
+import analysis.TweetAnalyzer;
 
 import com.cybozu.labs.langdetect.LangDetectException;
 

@@ -1,4 +1,4 @@
-package test.analyzer;
+package test.analysis;
 
 import java.io.IOException;
 
@@ -8,7 +8,7 @@ import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.util.Version;
 
-import analyzer.TweetAnalyzer;
+import analysis.TweetAnalyzer;
 
 public class AnalyzerTester{
 	public static void main(String[] args) 

@@ -1,4 +1,4 @@
-package test.analyzer;
+package test.analysis;
 
 /**
  * Copyright Manning Publications Co.

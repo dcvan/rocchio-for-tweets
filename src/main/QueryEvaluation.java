@@ -14,7 +14,7 @@ import common.exception.InvalidParameterException;
 import common.exception.TweetSearchEvaluatorException;
 import common.exception.WrongFileTypeException;
 import eval.TweetSearchEvaluator;
-import analyzer.TweetAnalyzer;
+import analysis.TweetAnalyzer;
 import query.TweetQueryLauncher;
 import query.topic.Topic;
 import query.topic.TopicReader;
