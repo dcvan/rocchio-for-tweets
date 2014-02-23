@@ -33,7 +33,7 @@ public class TweetSearchEvaluator {
 		
 		Map<String, String> res = eval.getScores("all");
 		for(String m : res.keySet()){
-			System.out.println(m + "\t" + res.get(m));
+			System.out.println(m + "\t" +res.get(m));
 		}
 	}
 	
@@ -103,8 +103,8 @@ public class TweetSearchEvaluator {
 				new InputStreamReader(p.getErrorStream()));
 		String line;
 		while((line = resReader.readLine()) != null){
-			String[] fs = line.split("\t");
-
+			String[] fs = line.split(" *\t");
+			if("runid".equals(fs[0])) continue;
 			if(scoreMap.containsKey(fs[1])){
 				scoreMap.get(fs[1]).put(fs[0], fs[2]);
 			}else{

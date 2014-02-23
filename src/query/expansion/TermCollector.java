@@ -11,7 +11,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.util.Bits;
@@ -32,10 +31,11 @@ public class TermCollector {
 			Float v1 = map.get(arg1);
 			if(v0.equals(v1))
 				return arg0.compareTo(arg1);
-			return v0.compareTo(v1);
+			return - v0.compareTo(v1);
 		}
 		
 	}
+	
 	private final static String TEXT_FN = "text";
 	private ScoreDoc[] scoreDocs;
 	private IndexReader indexReader;
@@ -52,13 +52,15 @@ public class TermCollector {
 	public Map<String, Float> getTerms(int n) 
 			throws IOException{
 		rankTerms();
+//		System.out.println(termMap);
 		Map<String, Float> tmpMap = new HashMap<String, Float>();
 		int cnt = 0;
 		for(String term : termMap.keySet()){
 			if(cnt == n) break;
-			tmpMap.put(term, termMap.get(term));
+ 			tmpMap.put(term, termMap.get(term));
 			cnt ++;
 		}
+		
 		return tmpMap;
 	}
 	
@@ -74,8 +76,7 @@ public class TermCollector {
 					int docFreq = indexReader.docFreq(new Term(TEXT_FN, br));
 					DocsEnum de = te.docs(liveDocs, null);
 					if(de == null) return;
-					int docid;
-					while((docid = de.nextDoc()) != DocsEnum.NO_MORE_DOCS){
+					while(de.nextDoc() != DocsEnum.NO_MORE_DOCS){
 						float tfidf = de.freq() * sim.idf(docFreq, numDocs);
 						String term = br.utf8ToString();
 						if(termMap.get(term) == null)

@@ -1,4 +1,4 @@
-package indexing;
+package index;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,15 +17,13 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
-import analysis.TweetAnalyzer;
-
 import com.cybozu.labs.langdetect.LangDetectException;
 
 import common.exception.FileExistsException;
 import common.exception.InstanceExistsException;
 import common.exception.WrongFileTypeException;
-import parsing.Tweet;
-import parsing.TweetParser;
+import parse.Tweet;
+import parse.TweetParser;
 
 public class TweetIndexer {
 	

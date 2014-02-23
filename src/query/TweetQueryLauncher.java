@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.ParseException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.document.Document;
@@ -59,6 +60,7 @@ public class TweetQueryLauncher {
 	private File resFile;
 	private IndexSearcher searcher;
 	private PrintWriter writer;
+	private Map<Integer,TermCollector> collectorMap;
 	
 	public TweetQueryLauncher(String index, String res) 
 			throws CorruptIndexException, IOException, FileExistsException{
@@ -75,29 +77,41 @@ public class TweetQueryLauncher {
 		searcher = new IndexSearcher(DirectoryReader.open(
 				FSDirectory.open(indexDir)));
 		writer = new PrintWriter(resFile);
+		
+		collectorMap = new HashMap<Integer, TermCollector>();
 	}
 	
-	public synchronized void query(int topNum, Query q) 
+	public synchronized void query(int topno, Query q) 
 			throws IOException{
-		System.out.println("Currently querying: " + topNum);
+		System.out.println("Currently querying: " + topno);
 		TopDocs hits = searcher.search(q, Q_NUM);
 		TermCollector collector = new TermCollector(hits.scoreDocs, searcher.getIndexReader());
+		collectorMap.put(topno, collector);
 		ScoreDoc[] scoreDocs = hits.scoreDocs;
 		for(int i = 0; i < scoreDocs.length; i ++){
 			Document d = searcher.doc(scoreDocs[i].doc);
-			write(topNum, d.get(DOCNO_FN), i, scoreDocs[i].score);
+			write(topno, d.get(DOCNO_FN), i, scoreDocs[i].score);
 		}
 		
-		Map<String, Float> termMap = collector.getTerms(20);
+		//write top 10 terms to the output
+		Map<String, Float> termMap = getTermMap(topno, 10);
 		System.out.println("---------------------");
-		for(String term : termMap.keySet())
-			System.out.println(term + ": " + termMap.get(term));
+		for(Map.Entry<String, Float> e : termMap.entrySet())
+			System.out.println(e);
 		System.out.println("---------------------");
 	}
 	
-	public void close() 
+	public Map<String, Float> getTermMap(int topno, int termNum) 
 			throws IOException{
-		writer.close();
+		return collectorMap.get(topno).getTerms(termNum);
+	}
+	
+	public Map<Integer, TermCollector> getAllCollector(){
+		return collectorMap;
+	}
+	
+	public IndexSearcher getSearcher(){
+		return searcher;
 	}
 	
 	public synchronized void write(int topNo, String docNo, int rank, float score){
@@ -112,4 +126,8 @@ public class TweetQueryLauncher {
 		writer.println(sb);
 	}
 	
+	public void close() 
+			throws IOException{
+		writer.close();
+	}
 }
