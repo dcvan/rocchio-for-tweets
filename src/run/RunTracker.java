@@ -66,7 +66,7 @@ public class RunTracker {
 	}
 	
 	public void writeQuery(int topno, String query){
-		runRec.add(new Field(topno + "", QUERY + ':' + query, genericType));
+		runRec.add(new Field("top" + topno, QUERY + ':' + query, genericType));
 	}
 	
 	public void writeTerms(int topno, Map<String, Float> terms){

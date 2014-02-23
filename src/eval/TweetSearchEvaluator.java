@@ -33,7 +33,7 @@ public class TweetSearchEvaluator {
 		
 		Map<String, String> res = eval.getScores("all");
 		for(String m : res.keySet()){
-			System.out.println(m + "\t" +res.get(m));
+			System.out.println(m + "\t" + res.get(m));
 		}
 	}
 	
