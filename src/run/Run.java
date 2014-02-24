@@ -6,9 +6,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
@@ -74,7 +77,8 @@ public class Run {
 			Query q = parser.parse(t.getTitle());
 			launcher.query(topno, q);
 			tracker.writeQuery(topno, q.toString());
-			tracker.writeTerms(topno, launcher.getTermMap(t.getTopNo(), 10));
+			tracker.writeQueryTerms(topno, extractTerms(q));
+			tracker.writeFeedbackTerms(topno, launcher.getTermMap(t.getTopNo(), 10));
 		}
 		reader.close();
 		launcher.close();
@@ -87,6 +91,15 @@ public class Run {
 			throws InstantiationException, IllegalAccessException, NoSuchMethodException, SecurityException, IllegalArgumentException, InvocationTargetException{
 		Constructor<?> ctor = analyzer.getConstructor(Version.class);
 		return (Analyzer)ctor.newInstance(Version.LUCENE_46);
+	}
+	
+	private Set<String> extractTerms(Query q){
+		Set<Term> tset = new HashSet<Term>();
+		Set<String> res = new HashSet<String>();
+		q.extractTerms(tset);
+		for(Term t : tset)
+			res.add(t.text());
+		return res;
 	}
 	
 }

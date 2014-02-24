@@ -45,7 +45,7 @@ public class TweetQueryLauncher {
 		
 		while(reader.hasNext()){
 			Topic top = reader.next();
-			Query query = parser.parse(top.getTitle().toLowerCase());
+			Query query = parser.parse(top.getTitle());
 			launcher.query(top.getTopNo(), query);
 		}
 		

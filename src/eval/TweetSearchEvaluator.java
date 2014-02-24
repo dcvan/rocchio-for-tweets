@@ -31,7 +31,7 @@ public class TweetSearchEvaluator {
 			"map", "P.30", "ndcg"	
 		}, false);
 		
-		Map<String, String> res = eval.getScores("all");
+		Map<String, Double> res = eval.getScores("all");
 		for(String m : res.keySet()){
 			System.out.println(m + "\t" + res.get(m));
 		}
@@ -43,7 +43,7 @@ public class TweetSearchEvaluator {
 	
 	private String qrel;
 	private String result;
-	private Map<String, Map<String, String>> scoreMap;
+	private Map<String, Map<String, Double>> scoreMap;
 	
 	/**
 	 * constructor 
@@ -70,7 +70,7 @@ public class TweetSearchEvaluator {
 		
 		qrel = qpath;
 		result = rpath;
-		scoreMap = new HashMap<String, Map<String, String>>();
+		scoreMap = new HashMap<String, Map<String, Double>>();
 	} 
 	
 	/**
@@ -106,10 +106,10 @@ public class TweetSearchEvaluator {
 			String[] fs = line.split(" *\t");
 			if("runid".equals(fs[0])) continue;
 			if(scoreMap.containsKey(fs[1])){
-				scoreMap.get(fs[1]).put(fs[0], fs[2]);
+				scoreMap.get(fs[1]).put(fs[0], Double.parseDouble(fs[2]));
 			}else{
-				Map<String, String> msmap = new HashMap<String, String>();
-				msmap.put(fs[0], fs[2]);
+				Map<String, Double> msmap = new HashMap<String, Double>();
+				msmap.put(fs[0], Double.parseDouble(fs[2]));
 				scoreMap.put(fs[1], msmap);
 			}
 		}
@@ -127,7 +127,7 @@ public class TweetSearchEvaluator {
 	 * @return 
 	 * @throws InvalidParameterException
 	 */
-	public Map<String, String> getScores(String topno) 
+	public Map<String, Double> getScores(String topno) 
 			throws InvalidParameterException{
 		if(topno == null)
 			throw new InvalidParameterException("Parameters cannot be null");

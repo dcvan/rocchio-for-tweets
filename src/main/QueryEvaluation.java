@@ -85,7 +85,7 @@ public class QueryEvaluation {
 			"map", "P.30", "ndcg"
 		}, false);
 		
-		Map<String, String> res = evaluator.getScores("all");
+		Map<String, Double> res = evaluator.getScores("all");
 		for(String m : res.keySet()){
 			System.out.println(m + "\t" + res.get(m));
 		}
