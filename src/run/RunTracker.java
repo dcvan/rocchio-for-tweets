@@ -5,10 +5,10 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 
-import org.apache.lucene.document.DateTools;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -16,6 +16,7 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
@@ -56,9 +57,7 @@ public class RunTracker {
 	}
 	
 	public void writeTimestamp(Date date){
-		runRec.add(new Field(TIMESTAMP, 
-				DateTools.dateToString(date, DateTools.Resolution.SECOND),
-				genericType));
+		runRec.add(new LongField(TIMESTAMP, date.getTime(), LongField.TYPE_STORED));
 	}
 	
 	public void writeAnalyzer(String analyzer){
@@ -66,12 +65,12 @@ public class RunTracker {
 	}
 	
 	public void writeQuery(int topno, String query){
-		runRec.add(new Field("top" + topno, QUERY + ':' + query, genericType));
+		runRec.add(new Field(String.valueOf(topno), QUERY + ':' + query, genericType));
 	}
 	
 	public void writeTerms(int topno, Map<String, Float> terms){
 		for(Map.Entry<String, Float> entry : terms.entrySet())
-			runRec.add(new Field("top" + topno, TERM + ':' + entry.toString(), genericType));
+			runRec.add(new Field(String.valueOf(topno), TERM + ':' + entry.toString(), genericType));
 	}
 	
 	public void writeMetrics(Map<String, String> metrics){
@@ -79,11 +78,17 @@ public class RunTracker {
 			runRec.add(new Field(METRIC, entry.toString(), genericType));
 	}
 	
-	public String getStatById(String id) 
+	
+	public String getStatByName(String id) 
 			throws IOException{
 		Query query = new TermQuery(new Term(NAME, id));
 		return getStat(query);
 	}	
+	
+	public String getStatByTimeRange(Date start, Date end) 
+			throws IOException{
+		return getStat(NumericRangeQuery.newLongRange(TIMESTAMP, start.getTime(), end.getTime(), true, true));	
+	}
 	
 	public String getAllStat() 
 			throws IOException{
