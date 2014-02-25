@@ -3,13 +3,10 @@ package run;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
 
@@ -41,6 +38,7 @@ public class Run {
 	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/records";
 	private final static String TOP_PATH = "test-collection/topics.MB1-50.txt";
 	private final static String QREL_PATH = "test-collection/microblog11-qrels.txt";
+	private final static int NUM_FEEDBACK_TERMS = 10;
 	
 	private final static String ALL_METRICS = "all_trec";
 	private final static String ALL_QUERIES = "all";
@@ -48,11 +46,18 @@ public class Run {
 	private Date timestamp;
 	private TweetQueryMaker qmaker;
 	private RunTracker tracker;
+	private int numFeedbackTerms;
 	
 	public Run(Analyzer analyzer) 
 			throws IOException, ParseException{
+		this(analyzer, NUM_FEEDBACK_TERMS);
+	}
+	
+	public Run(Analyzer analyzer, int numFeedbackTerms) 
+			throws IOException, ParseException{
 		qmaker = new TweetQueryMaker(TOP_PATH, analyzer);
 		tracker = new RunTracker(REC_BASE);
+		this.numFeedbackTerms = numFeedbackTerms;
 	}
 	
 	public synchronized void run(String name) 
@@ -76,8 +81,8 @@ public class Run {
 			Query q = entry.getValue();
 			launcher.query(topno, q);
 			tracker.writeQuery(topno, q.toString());
-			tracker.writeQueryTerms(topno, extractTerms(q));
-			tracker.writeFeedbackTerms(topno, launcher.getTermMap(topno, 10));
+			tracker.writeQueryTerms(topno, launcher.getQueryTerms(topno));
+			tracker.writeFeedbackTerms(topno, launcher.getFeedbackTerms(topno, numFeedbackTerms));
 		}
 		
 		evaluator.evaluate(new String[]{ALL_METRICS}, false);
@@ -108,14 +113,4 @@ public class Run {
 			throws IOException{
 		tracker.close();
 	}
-	
-	private Set<String> extractTerms(Query q){
-		Set<Term> tset = new HashSet<Term>();
-		Set<String> res = new HashSet<String>();
-		q.extractTerms(tset);
-		for(Term t : tset)
-			res.add(t.text());
-		return res;
-	}
-	
 }

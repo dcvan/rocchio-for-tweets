@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.CorruptIndexException;
@@ -60,6 +61,7 @@ public class TweetQueryLauncher {
 	private File resFile;
 	private IndexSearcher searcher;
 	private PrintWriter writer;
+	private Map<Integer, Set<String>> queryTerms;
 	private Map<Integer,TermCollector> collectorMap;
 	
 	public TweetQueryLauncher(String index, String res) 
@@ -79,6 +81,7 @@ public class TweetQueryLauncher {
 		writer = new PrintWriter(resFile);
 		
 		collectorMap = new HashMap<Integer, TermCollector>();
+		queryTerms = new HashMap<Integer, Set<String>>();
 	}
 	
 	public synchronized void query(int topno, Query q) 
@@ -87,6 +90,7 @@ public class TweetQueryLauncher {
 		TopDocs hits = searcher.search(q, Q_NUM);
 		TermCollector collector = new TermCollector(q, hits.scoreDocs, searcher.getIndexReader());
 		collectorMap.put(topno, collector);
+		queryTerms.put(topno, collector.getQueryTerms());
 		ScoreDoc[] scoreDocs = hits.scoreDocs;
 		for(int i = 0; i < scoreDocs.length; i ++){
 			Document d = searcher.doc(scoreDocs[i].doc);
@@ -94,16 +98,20 @@ public class TweetQueryLauncher {
 		}
 		
 		//write top 10 terms to the output
-		Map<String, Float> termMap = getTermMap(topno, 10);
+		Map<String, Float> termMap = getFeedbackTerms(topno, 10);
 		System.out.println("---------------------");
 		for(Map.Entry<String, Float> e : termMap.entrySet())
 			System.out.println(e);
 		System.out.println("---------------------");
 	}
 	
-	public Map<String, Float> getTermMap(int topno, int termNum) 
+	public Map<String, Float> getFeedbackTerms(int topno, int termNum) 
 			throws IOException{
 		return collectorMap.get(topno).getTerms(termNum);
+	}
+	
+	public Set<String> getQueryTerms(int topno){
+		return queryTerms.get(topno);
 	}
 	
 	public Map<Integer, TermCollector> getAllCollector(){

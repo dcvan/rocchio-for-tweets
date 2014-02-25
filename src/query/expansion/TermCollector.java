@@ -51,7 +51,6 @@ public class TermCollector {
 		this.indexReader = indexReader;
 		termMap = new HashMap<String, Float>();
 		queryTerms = extractTerms(query);
-		System.out.println(queryTerms);
 		sim = new DefaultSimilarity();
 	}
 	
@@ -69,6 +68,10 @@ public class TermCollector {
 		}
 		
 		return tmpMap;
+	}
+	
+	public Set<String> getQueryTerms(){
+		return queryTerms;
 	}
 	
 	private void rankTerms() 
