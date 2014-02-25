@@ -25,7 +25,7 @@ public class Run {
 			throws Exception{
 		Run run = new Run(new EnglishAnalyzer(Version.LUCENE_46));
 		run.run("first run");
-		run.getQueryMaker().expandQueries(run.getLatestStat());
+		run.getQueryMaker().expandQueries(run.getTracker().getLatestStat());
 		run.run("second run");
 		for(Statistics stat : run.getTracker().getAllStat()){
 			System.out.println(stat);	
@@ -102,11 +102,6 @@ public class Run {
 	
 	public RunTracker getTracker(){
 		return tracker;
-	}
-	
-	public Statistics getLatestStat() 
-			throws IOException{
-		return tracker.getStatbyTimeStamp(timestamp);
 	}
 	
 	public void close() 

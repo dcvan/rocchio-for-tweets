@@ -42,6 +42,7 @@ public class RunTracker {
 	private File recDir;
 	private Document runRec;
 	private FieldType genericType;
+	private Date latest, latestTmp;
 	
 	public RunTracker(String recPath) 
 			throws IOException{
@@ -60,7 +61,8 @@ public class RunTracker {
 	}
 	
 	public void writeTimestamp(Date date){
-		runRec.add(new LongField(TIMESTAMP, date.getTime(), LongField.TYPE_STORED));
+		latestTmp = date;
+		runRec.add(new LongField(TIMESTAMP, latestTmp.getTime(), LongField.TYPE_STORED));
 	}
 	
 	public void writeResultFile(String path){
@@ -96,7 +98,7 @@ public class RunTracker {
 		Query query = new TermQuery(new Term(NAME, id));
 		return getStat(query);
 	}	
-	public Statistics getStatbyTimeStamp(Date datetime) 
+	public Statistics getStatbyTimestamp(Date datetime) 
 			throws IOException{
 		long time = datetime.getTime();
 		return getStat(NumericRangeQuery.newLongRange(TIMESTAMP, time, time, true, true)).get(0);
@@ -115,6 +117,7 @@ public class RunTracker {
 	public void commit() 
 			throws IOException{
 		writer.addDocument(runRec);
+		latest = latestTmp;
 		runRec = new Document();
 		writer.commit();
 	}
@@ -122,6 +125,11 @@ public class RunTracker {
 	public void close() 
 			throws IOException{
 		writer.close();
+	}
+	
+	public Statistics getLatestStat() 
+			throws IOException{
+		return getStatbyTimestamp(latest);
 	}
 	
 	private void setFieldType(FieldType ft){
