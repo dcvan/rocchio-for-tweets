@@ -85,7 +85,7 @@ public class TweetQueryLauncher {
 			throws IOException{
 		System.out.println("Currently querying: " + topno);
 		TopDocs hits = searcher.search(q, Q_NUM);
-		TermCollector collector = new TermCollector(hits.scoreDocs, searcher.getIndexReader());
+		TermCollector collector = new TermCollector(q, hits.scoreDocs, searcher.getIndexReader());
 		collectorMap.put(topno, collector);
 		ScoreDoc[] scoreDocs = hits.scoreDocs;
 		for(int i = 0; i < scoreDocs.length; i ++){
@@ -124,6 +124,7 @@ public class TweetQueryLauncher {
 			.append("run");
 		
 		writer.println(sb);
+		writer.flush();
 	}
 	
 	public void close() 

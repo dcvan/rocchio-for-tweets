@@ -2,16 +2,18 @@ package run;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class Statistics {
 	private String name;
 	private long timestamp;
+	private String result;
 	private String analyzer;
 	private Map<Integer, Feedback> feedbacks;
 	private Map<String, Double> metrics;
 	
 	public Statistics(){
-		feedbacks = new HashMap<Integer, Feedback>();
+		feedbacks = new TreeMap<Integer, Feedback>();
 		metrics = new HashMap<String, Double>();
 	}
 
@@ -26,9 +28,17 @@ public class Statistics {
 	public long getTimestamp() {
 		return timestamp;
 	}
-
+	
 	public void setTimestamp(long timestamp) {
 		this.timestamp = timestamp;
+	}
+	
+	public String getResult(){
+		return result;
+	}
+	
+	public void setResult(String result){
+		this.result = result;
 	}
 
 	public String getAnalyzer() {
@@ -64,6 +74,7 @@ public class Statistics {
 		StringBuilder sb = new StringBuilder();
 		sb.append("name: ").append(name)
 			.append("\ntimestamp: ").append(timestamp)
+			.append("\nresult file: ").append(result)
 			.append("\nanalyzer: ").append(analyzer)
 			.append("\nmetrics: ").append(metrics)
 			.append("\nfeedbacks: \n");

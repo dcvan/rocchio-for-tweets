@@ -3,7 +3,9 @@ package query.expansion;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.lucene.index.DocsEnum;
@@ -11,6 +13,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.util.Bits;
@@ -40,12 +43,15 @@ public class TermCollector {
 	private ScoreDoc[] scoreDocs;
 	private IndexReader indexReader;
 	private Map<String, Float> termMap;
+	private Set<String> queryTerms;
 	private DefaultSimilarity sim;
 	
-	public TermCollector(ScoreDoc[] scoreDocs, IndexReader indexReader){
+	public TermCollector(Query query, ScoreDoc[] scoreDocs, IndexReader indexReader){
 		this.scoreDocs = scoreDocs;
 		this.indexReader = indexReader;
 		termMap = new HashMap<String, Float>();
+		queryTerms = extractTerms(query);
+		System.out.println(queryTerms);
 		sim = new DefaultSimilarity();
 	}
 	
@@ -57,8 +63,9 @@ public class TermCollector {
 		int cnt = 0;
 		for(String term : termMap.keySet()){
 			if(cnt == n) break;
- 			tmpMap.put(term, termMap.get(term));
 			cnt ++;
+//			if(queryTerms.contains(term)) continue;
+ 			tmpMap.put(term, termMap.get(term));
 		}
 		
 		return tmpMap;
@@ -92,5 +99,14 @@ public class TermCollector {
 				new ValueComparator(termMap));
 		sortedMap.putAll(termMap);
 		termMap = sortedMap;
+	}
+	
+	private Set<String> extractTerms(Query q){
+		Set<Term> tset = new HashSet<Term>();
+		Set<String> res = new HashSet<String>();
+		q.extractTerms(tset);
+		for(Term t : tset)
+			res.add(t.text());
+		return res;
 	}
 }

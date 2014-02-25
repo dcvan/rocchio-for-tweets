@@ -1,96 +1,112 @@
 package run;
 
-
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Version;
 
+import common.exception.FileExistsException;
+import common.exception.InstanceExistsException;
 import common.exception.InvalidParameterException;
 import common.exception.TweetSearchEvaluatorException;
+import common.exception.WrongFileTypeException;
 import query.TweetQueryLauncher;
-import query.topic.Topic;
-import query.topic.TopicReader;
+import query.TweetQueryMaker;
 import eval.TweetSearchEvaluator;
 
 public class Run {
 
 	public static void main(String[] args) 
 			throws Exception{
-		if(args.length < 5){
-			System.err.println("<Usage> java Run <topic file> <index dir> <qrel file> <result file> <recs dir>");
-			System.exit(1);
+		Run run = new Run(new EnglishAnalyzer(Version.LUCENE_46));
+		run.run("first run");
+		run.getQueryMaker().expandQueries(run.getLatestStat());
+		run.run("second run");
+		for(Statistics stat : run.getTracker().getAllStat()){
+			System.out.println(stat);	
 		}
-		
-		String topics = args[0], indexDir = args[1], qrel = args[2], result = args[3], recs = args[4];
-		
-		TopicReader reader = new TopicReader(topics);
-		TweetQueryLauncher launcher = new TweetQueryLauncher(indexDir, result);
-		TweetSearchEvaluator evaluator = new TweetSearchEvaluator(qrel, result);
-		RunTracker tracker = new RunTracker(recs);
-		Run run = new Run(launcher, reader, evaluator, EnglishAnalyzer.class, tracker);
-		run.run("First run");
-		System.out.println(tracker.getAllStat());
+		run.close();
 	}
+	
+	private final static String RESULT_BASE = "test-collection/result-";
+	private final static String INDEX_BASE = System.getProperty("user.home") + "/Documents/tweets.index.1";
+	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/records";
+	private final static String TOP_PATH = "test-collection/topics.MB1-50.txt";
+	private final static String QREL_PATH = "test-collection/microblog11-qrels.txt";
 	
 	private final static String ALL_METRICS = "all_trec";
 	private final static String ALL_QUERIES = "all";
-	private final static String TEXT = "text";
 	
-	private Analyzer analyzer;
-	private TweetQueryLauncher launcher;
-	private TopicReader reader;
-	private TweetSearchEvaluator evaluator;
+	private Date timestamp;
+	private TweetQueryMaker qmaker;
 	private RunTracker tracker;
 	
-	public Run(TweetQueryLauncher launcher, TopicReader reader, TweetSearchEvaluator evaluator, Class<?> analyzer, RunTracker tracker) 
-			throws InstantiationException, IllegalAccessException, NoSuchMethodException, SecurityException, IllegalArgumentException, InvocationTargetException{
-		Object obj = newAnalyzer(analyzer);
-		if(!(obj instanceof Analyzer))
-			throw new IllegalArgumentException("Parameter analyzer must be an instance of Analyzer.");
-		this.launcher = launcher;
-		this.reader = reader;
-		this.evaluator = evaluator;
-		this.tracker = tracker;
-		this.analyzer = (Analyzer)obj;
+	public Run(Analyzer analyzer) 
+			throws IOException, ParseException{
+		qmaker = new TweetQueryMaker(TOP_PATH, analyzer);
+		tracker = new RunTracker(REC_BASE);
 	}
 	
 	public synchronized void run(String name) 
-			throws IOException, ParseException, InstantiationException, IllegalAccessException, NoSuchMethodException, SecurityException, IllegalArgumentException, InvocationTargetException, org.apache.lucene.queryparser.classic.ParseException, InvalidParameterException, TweetSearchEvaluatorException{
+			throws org.apache.lucene.queryparser.classic.ParseException, IOException, InvalidParameterException, TweetSearchEvaluatorException, FileExistsException, WrongFileTypeException, InstanceExistsException{
+		timestamp = new Date();
+		String result = new StringBuilder(RESULT_BASE)
+			.append(name.trim().replaceAll(" ", "-"))
+			.append('-')
+			.append(timestamp.getTime())
+			.append(".txt").toString();
+		
+		TweetQueryLauncher launcher = new TweetQueryLauncher(INDEX_BASE, result);
+		TweetSearchEvaluator evaluator = new TweetSearchEvaluator(QREL_PATH, result);
+		
 		tracker.writeName(name);
-		tracker.writeTimestamp(new Date());
-		tracker.writeAnalyzer(analyzer.getClass().getSimpleName());
-		QueryParser parser = new QueryParser(Version.LUCENE_46, TEXT, analyzer);
-		while(reader.hasNext()){
-			Topic t = reader.next();
-			int topno = t.getTopNo();
-			Query q = parser.parse(t.getTitle());
+		tracker.writeTimestamp(timestamp);
+		tracker.writeResultFile(result);
+		tracker.writeAnalyzer(qmaker.getAnalyzer().getClass().getSimpleName());
+		for(Map.Entry<Integer, Query> entry : qmaker.getQueries().entrySet()){
+			int topno = entry.getKey();
+			Query q = entry.getValue();
 			launcher.query(topno, q);
 			tracker.writeQuery(topno, q.toString());
 			tracker.writeQueryTerms(topno, extractTerms(q));
-			tracker.writeFeedbackTerms(topno, launcher.getTermMap(t.getTopNo(), 10));
+			tracker.writeFeedbackTerms(topno, launcher.getTermMap(topno, 10));
 		}
-		reader.close();
-		launcher.close();
+		
 		evaluator.evaluate(new String[]{ALL_METRICS}, false);
 		tracker.writeMetrics(evaluator.getScores(ALL_QUERIES));
 		tracker.commit();
+
+		launcher.close();
 	}
 	
-	private Analyzer newAnalyzer(Class<?> analyzer) 
-			throws InstantiationException, IllegalAccessException, NoSuchMethodException, SecurityException, IllegalArgumentException, InvocationTargetException{
-		Constructor<?> ctor = analyzer.getConstructor(Version.class);
-		return (Analyzer)ctor.newInstance(Version.LUCENE_46);
+	public Date getTimestamp(){
+		return timestamp;
+	}
+	
+	public TweetQueryMaker getQueryMaker(){
+		return qmaker;
+	}
+	
+	public RunTracker getTracker(){
+		return tracker;
+	}
+	
+	public Statistics getLatestStat() 
+			throws IOException{
+		return tracker.getStatbyTimeStamp(timestamp);
+	}
+	
+	public void close() 
+			throws IOException{
+		tracker.close();
 	}
 	
 	private Set<String> extractTerms(Query q){

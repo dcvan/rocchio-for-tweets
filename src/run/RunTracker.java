@@ -2,6 +2,7 @@ package run;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,7 @@ public class RunTracker {
 	private final static int UNLIMITED = Integer.MAX_VALUE;
 	private final static String NAME = "name";
 	private final static String TIMESTAMP = "timestamp";
+	private final static String RESULT = "result file";
 	private final static String ANALYZER = "analyzer";
 	private final static String QUERY = "query";
 	private final static String Q_TERM = "query terms";
@@ -43,7 +45,6 @@ public class RunTracker {
 	
 	public RunTracker(String recPath) 
 			throws IOException{
-		
 		recDir = new File(recPath);
 		if(!recDir.exists())
 			recDir.mkdirs();
@@ -60,6 +61,10 @@ public class RunTracker {
 	
 	public void writeTimestamp(Date date){
 		runRec.add(new LongField(TIMESTAMP, date.getTime(), LongField.TYPE_STORED));
+	}
+	
+	public void writeResultFile(String path){
+		runRec.add(new Field(RESULT, path, genericType));
 	}
 	
 	public void writeAnalyzer(String analyzer){
@@ -86,18 +91,23 @@ public class RunTracker {
 	}
 	
 	
-	public Statistics getStatByName(String id) 
+	public ArrayList<Statistics> getStatByName(String id) 
 			throws IOException{
 		Query query = new TermQuery(new Term(NAME, id));
 		return getStat(query);
 	}	
+	public Statistics getStatbyTimeStamp(Date datetime) 
+			throws IOException{
+		long time = datetime.getTime();
+		return getStat(NumericRangeQuery.newLongRange(TIMESTAMP, time, time, true, true)).get(0);
+	}
 	
-	public Statistics getStatByTimeRange(Date start, Date end) 
+	public ArrayList<Statistics> getStatByTimeRange(Date start, Date end) 
 			throws IOException{
 		return getStat(NumericRangeQuery.newLongRange(TIMESTAMP, start.getTime(), end.getTime(), true, true));	
 	}
 	
-	public Statistics getAllStat() 
+	public ArrayList<Statistics> getAllStat() 
 			throws IOException{
 		return getStat(new MatchAllDocsQuery());
 	}
@@ -105,6 +115,12 @@ public class RunTracker {
 	public void commit() 
 			throws IOException{
 		writer.addDocument(runRec);
+		runRec = new Document();
+		writer.commit();
+	}
+	
+	public void close() 
+			throws IOException{
 		writer.close();
 	}
 	
@@ -116,14 +132,15 @@ public class RunTracker {
 		ft.setOmitNorms(true);
 	}
 	
-	private Statistics getStat(Query q) 
+	private ArrayList<Statistics> getStat(Query q) 
 			throws IOException{
 		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(
 				FSDirectory.open(recDir)));
 		TopDocs hits = searcher.search(q, UNLIMITED);
-		Statistics stat = new Statistics();
+		ArrayList<Statistics> statList = new ArrayList<Statistics>();
 		for(ScoreDoc sd : hits.scoreDocs){
 			Document doc = searcher.doc(sd.doc);
+			Statistics stat = new Statistics();
 			for(IndexableField f : doc.getFields()){
 				String k = f.name();
 				String v = f.stringValue();
@@ -131,6 +148,8 @@ public class RunTracker {
 					stat.setName(v);
 				}else if(k.equals(TIMESTAMP)){
 					stat.setTimestamp(Long.parseLong(v));
+				}else if(k.equals(RESULT)){
+					stat.setResult(v);
 				}else if(k.equals(ANALYZER)){
 					stat.setAnalyzer(v);
 				}else if(k.equals(METRIC)){
@@ -154,8 +173,10 @@ public class RunTracker {
 					}
 				}
 			}
+			
+			statList.add(stat);
 		}
 		
-		return stat;
+		return statList;
 	}
 }
