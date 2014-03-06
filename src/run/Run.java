@@ -17,13 +17,14 @@ import common.exception.TweetSearchEvaluatorException;
 import common.exception.WrongFileTypeException;
 import query.TweetQueryLauncher;
 import query.TweetQueryMaker;
+import query.expansion.TermCollector;
 import eval.TweetSearchEvaluator;
 
 public class Run {
 
 	public static void main(String[] args) 
 			throws Exception{
-		Run run = new Run(new EnglishAnalyzer(Version.LUCENE_46));
+		Run run = new Run(new EnglishAnalyzer(Version.LUCENE_46), 10, 10);
 		run.run("first run");
 		run.getQueryMaker().expandQueries(run.getTracker().getLatestStat());
 		run.run("second run");
@@ -38,7 +39,6 @@ public class Run {
 	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/records";
 	private final static String TOP_PATH = "test-collection/topics.MB1-50.txt";
 	private final static String QREL_PATH = "test-collection/microblog11-qrels.txt";
-	private final static int NUM_FEEDBACK_TERMS = 10;
 	
 	private final static String ALL_METRICS = "all_trec";
 	private final static String ALL_QUERIES = "all";
@@ -46,18 +46,15 @@ public class Run {
 	private Date timestamp;
 	private TweetQueryMaker qmaker;
 	private RunTracker tracker;
-	private int numFeedbackTerms;
+	private int numDocs;
+	private int numTerms;
 	
-	public Run(Analyzer analyzer) 
-			throws IOException, ParseException{
-		this(analyzer, NUM_FEEDBACK_TERMS);
-	}
-	
-	public Run(Analyzer analyzer, int numFeedbackTerms) 
+	public Run(Analyzer analyzer, int numDocs, int numTerms) 
 			throws IOException, ParseException{
 		qmaker = new TweetQueryMaker(TOP_PATH, analyzer);
 		tracker = new RunTracker(REC_BASE);
-		this.numFeedbackTerms = numFeedbackTerms;
+		this.numDocs = numDocs;
+		this.numTerms = numTerms;
 	}
 	
 	public synchronized void run(String name) 
@@ -68,8 +65,8 @@ public class Run {
 			.append('-')
 			.append(timestamp.getTime())
 			.append(".txt").toString();
-		
-		TweetQueryLauncher launcher = new TweetQueryLauncher(INDEX_BASE, result);
+		TermCollector collector = new TermCollector(numDocs, numTerms);
+		TweetQueryLauncher launcher = new TweetQueryLauncher(INDEX_BASE, result, collector);
 		TweetSearchEvaluator evaluator = new TweetSearchEvaluator(QREL_PATH, result);
 		
 		tracker.writeName(name);
@@ -82,10 +79,10 @@ public class Run {
 			launcher.query(topno, q);
 			tracker.writeQuery(topno, q.toString());
 			tracker.writeQueryTerms(topno, launcher.getQueryTerms(topno));
-			tracker.writeFeedbackTerms(topno, launcher.getFeedbackTerms(topno, numFeedbackTerms));
+			tracker.writeFeedbackTerms(topno, launcher.getFeedbackTerms(topno));
 		}
 		
-		evaluator.evaluate(new String[]{ALL_METRICS}, false);
+		evaluator.evaluate(false, ALL_METRICS);
 		tracker.writeMetrics(evaluator.getScores(ALL_QUERIES));
 		tracker.commit();
 

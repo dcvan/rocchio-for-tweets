@@ -42,16 +42,16 @@ public class TweetQueryLauncher {
 		QueryParser parser = new QueryParser(Version.LUCENE_46, "text", 
 				new TweetAnalyzer(Version.LUCENE_46));
 		TopicReader reader = new TopicReader(topIn);
-		TweetQueryLauncher launcher = new TweetQueryLauncher(in, out);
+//		TweetQueryLauncher launcher = new TweetQueryLauncher(in, out);
 		
 		while(reader.hasNext()){
 			Topic top = reader.next();
 			Query query = parser.parse(top.getTitle());
-			launcher.query(top.getTopNo(), query);
+//			launcher.query(top.getTopNo(), query);
 		}
 		
 		reader.close();
-		launcher.close();
+//		launcher.close();
 	}
 	
 	private final static int Q_NUM = 1000;
@@ -62,9 +62,10 @@ public class TweetQueryLauncher {
 	private IndexSearcher searcher;
 	private PrintWriter writer;
 	private Map<Integer, Set<String>> queryTerms;
-	private Map<Integer,TermCollector> collectorMap;
+	private Map<Integer, Map<String, Float>> termMap;
+	private TermCollector collector;
 	
-	public TweetQueryLauncher(String index, String res) 
+	public TweetQueryLauncher(String index, String res, TermCollector collector) 
 			throws CorruptIndexException, IOException, FileExistsException{
 	
 		File in = new File(index);
@@ -79,43 +80,47 @@ public class TweetQueryLauncher {
 		searcher = new IndexSearcher(DirectoryReader.open(
 				FSDirectory.open(indexDir)));
 		writer = new PrintWriter(resFile);
+
+		this.collector = collector;
+		collector.setIndexReader(searcher.getIndexReader());
 		
-		collectorMap = new HashMap<Integer, TermCollector>();
+		termMap = new HashMap<Integer, Map<String, Float>>();
 		queryTerms = new HashMap<Integer, Set<String>>();
 	}
 	
 	public synchronized void query(int topno, Query q) 
 			throws IOException{
 		System.out.println("Currently querying: " + topno);
+		
 		TopDocs hits = searcher.search(q, Q_NUM);
-		TermCollector collector = new TermCollector(q, hits.scoreDocs, searcher.getIndexReader());
-		collectorMap.put(topno, collector);
-		queryTerms.put(topno, collector.getQueryTerms());
 		ScoreDoc[] scoreDocs = hits.scoreDocs;
+		
+		collector.setScoreDocs(scoreDocs);
+		collector.setQuery(q);
+		
+		termMap.put(topno, collector.getTerms());
+		queryTerms.put(topno, collector.getQueryTerms());
+		
 		for(int i = 0; i < scoreDocs.length; i ++){
 			Document d = searcher.doc(scoreDocs[i].doc);
 			write(topno, d.get(DOCNO_FN), i, scoreDocs[i].score);
 		}
 		
 		//write top 10 terms to the output
-		Map<String, Float> termMap = getFeedbackTerms(topno, 10);
+		Map<String, Float> termMap = getFeedbackTerms(topno);
 		System.out.println("---------------------");
 		for(Map.Entry<String, Float> e : termMap.entrySet())
 			System.out.println(e);
 		System.out.println("---------------------");
 	}
 	
-	public Map<String, Float> getFeedbackTerms(int topno, int termNum) 
+	public Map<String, Float> getFeedbackTerms(int topno) 
 			throws IOException{
-		return collectorMap.get(topno).getTerms(termNum);
+		return termMap.get(topno);
 	}
 	
 	public Set<String> getQueryTerms(int topno){
 		return queryTerms.get(topno);
-	}
-	
-	public Map<Integer, TermCollector> getAllCollector(){
-		return collectorMap;
 	}
 	
 	public IndexSearcher getSearcher(){

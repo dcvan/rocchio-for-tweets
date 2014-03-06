@@ -27,9 +27,7 @@ public class TweetSearchEvaluator {
 		
 		TweetSearchEvaluator eval = new TweetSearchEvaluator(args[0], args[1]);
 
-		eval.evaluate(new String[]{
-			"map", "P.30", "ndcg"	
-		}, false);
+		eval.evaluate(false, "map", "P.30", "ndcg");
 		
 		Map<String, Double> res = eval.getScores("all");
 		for(String m : res.keySet()){
@@ -81,7 +79,8 @@ public class TweetSearchEvaluator {
 	 * @throws IOException
 	 * @throws TweetSearchEvaluatorException
 	 */
-	public void evaluate(String[] metrics, boolean forEach) 
+	
+	public void evaluate(boolean forEach, String... metrics) 
 			throws InvalidParameterException, IOException, TweetSearchEvaluatorException{
 		if(metrics == null)
 			throw new InvalidParameterException("Parameters cannot be null");
