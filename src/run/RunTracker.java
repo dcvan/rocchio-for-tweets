@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -84,9 +85,14 @@ public class RunTracker {
 		Query query = new TermQuery(new Term(NAME, id));
 		return getStat(query);
 	}	
-	public Statistics getStatbyTimestamp(Date datetime) 
+	public Statistics getStatByTimestamp(Date datetime) 
 			throws IOException{
 		long time = datetime.getTime();
+		return getStatByTimestamp(time);
+	}
+	
+	public Statistics getStatByTimestamp(long time) 
+			throws IOException{
 		return getStat(NumericRangeQuery.newLongRange(TIMESTAMP, time, time, true, true)).get(0);
 	}
 	
@@ -98,6 +104,15 @@ public class RunTracker {
 	public ArrayList<Statistics> getAllStat() 
 			throws IOException{
 		return getStat(new MatchAllDocsQuery());
+	}
+	
+	public Map<String, Double> getMetrics(long timestamp, String... metrics) 
+			throws IOException{
+		Map<String, Double> metricMap = getStatByTimestamp(timestamp).getMetrics();
+		Map<String, Double> res = new TreeMap<String, Double>();
+		for(String m : metrics)
+			res.put(m, metricMap.get(m));
+		return res;
 	}
 	
 	public void close() 

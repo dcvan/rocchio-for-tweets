@@ -27,11 +27,38 @@ public class Run {
 			throws Exception{
 		Run run = new Run(new EnglishAnalyzer(Version.LUCENE_46), 10, 10);
 		run.run("first run");
+		long t1 = run.getTimestamp();
 		run.expandQueries();
 		run.run("second run");
-		for(Statistics stat : run.getTracker().getAllStat()){
-			System.out.println(stat);	
+		long t2 = run.getTimestamp();
+		run.expandQueries();
+		run.run("third run");
+		long t3 = run.getTimestamp();
+		
+		String[] metrics = {"P_30", "map", "ndcg"};
+		Map<String, Double> m1 = run.getTracker().getMetrics(t1, metrics);
+		Map<String, Double> m2 = run.getTracker().getMetrics(t2, metrics);
+//		Map<String, Double> m3 = run.getTracker().getMetrics(t3, metrics);
+		
+		System.out.println(m1);
+		System.out.println(m2);
+//		System.out.println(m3);
+		System.out.println();
+		
+		for(String m : metrics){
+			double incr = (m2.get(m) - m1.get(m)) / m1.get(m);
+			System.out.printf("Improvement of %s is %.4f\n", m, incr);
 		}
+
+		System.out.println();
+
+//		for(String m : metrics){
+//			double incr = (m3.get(m) - m2.get(m)) / m2.get(m);
+//			System.out.printf("Improvement of %s is %.4f\n", m, incr);
+//		}
+//		for(Statistics stat : run.getTracker().getAllStat()){
+//			System.out.println(stat);	
+//		}
 		run.close();
 	}
 	
@@ -44,7 +71,7 @@ public class Run {
 	private final static String ALL_METRICS = "all_trec";
 	private final static String ALL_QUERIES = "all";
 	
-	private Date timestamp;
+	private long timestamp;
 	private TweetQueryMaker qmaker;
 	private RunTracker tracker;
 	private Statistics state;
@@ -62,18 +89,18 @@ public class Run {
 	public synchronized void run(String name) 
 			throws org.apache.lucene.queryparser.classic.ParseException, IOException, InvalidParameterException, TweetSearchEvaluatorException, FileExistsException, WrongFileTypeException, InstanceExistsException, ResetException{
 		state = new Statistics();
-		timestamp = new Date();
+		timestamp = new Date().getTime();
 		String result = new StringBuilder(RESULT_BASE)
 			.append(name.trim().replaceAll(" ", "-"))
 			.append('-')
-			.append(timestamp.getTime())
+			.append(timestamp)
 			.append(".txt").toString();
 		TermCollector collector = new TermCollector(numDocs, numTerms);
 		TweetQueryLauncher launcher = new TweetQueryLauncher(INDEX_BASE, result, collector);
 		TweetSearchEvaluator evaluator = new TweetSearchEvaluator(QREL_PATH, result);
 		
 		state.setName(name);
-		state.setTimestamp(timestamp.getTime());
+		state.setTimestamp(timestamp);
 		state.setResult(result);
 		state.setAnalyzer(qmaker.getAnalyzer().getClass().getSimpleName());
 		for(Map.Entry<Integer, Query> entry : qmaker.getQueries().entrySet()){
@@ -94,7 +121,7 @@ public class Run {
 		launcher.close();
 	}
 	
-	public Date getTimestamp(){
+	public long getTimestamp(){
 		return timestamp;
 	}
 	

@@ -28,7 +28,7 @@ public class Feedback {
 	}
 	
 	public void setQueryTerms(Set<String> queryTerms){
-		this.queryTerms = queryTerms;
+		this.queryTerms = new HashSet<String>(queryTerms);
 	}
 	
 	public void addQueryTerms(String t){

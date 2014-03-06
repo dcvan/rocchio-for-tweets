@@ -88,8 +88,9 @@ public class TermCollector {
 		int cnt = 0;
 		for(String term : termMap.keySet()){
 			if(cnt == numTerms) break;
-			cnt ++;
+//			if(term.length() < 3) continue;
 //			if(term.equals("http") || term.equals("bit.li")) continue;
+			cnt ++;
 //			if(queryTerms.contains(term)) continue;
  			tmpMap.put(term, termMap.get(term));
 		}
@@ -103,7 +104,7 @@ public class TermCollector {
 	 * @return
 	 */
 	public Set<String> getQueryTerms(){
-		return queryTerms;
+		return new HashSet<String>(queryTerms);
 	}
 	
 	void reset(Query q, ScoreDoc[] scoreDocs, IndexReader indexReader){
