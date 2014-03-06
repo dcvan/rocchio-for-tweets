@@ -1,6 +1,5 @@
 package run;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -14,7 +13,7 @@ public class Statistics {
 	
 	public Statistics(){
 		feedbacks = new TreeMap<Integer, Feedback>();
-		metrics = new HashMap<String, Double>();
+		metrics = new TreeMap<String, Double>();
 	}
 
 	public String getName() {
@@ -50,7 +49,7 @@ public class Statistics {
 	}
 
 	public Map<Integer, Feedback> getFeedbacks() {
-		return feedbacks;
+		return new TreeMap<Integer, Feedback>(feedbacks);
 	}
 	
 	public Feedback getFeedback(Integer topno){
@@ -62,7 +61,11 @@ public class Statistics {
 	}
 
 	public Map<String, Double> getMetrics() {
-		return metrics;
+		return new TreeMap<String, Double>(metrics);
+	}
+	
+	public void setMetrics(Map<String, Double> metrics){
+		this.metrics = new TreeMap<String, Double>(metrics);
 	}
 
 	public void addMetric(String name, Double value) {

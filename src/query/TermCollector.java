@@ -1,4 +1,4 @@
-package query.expansion;
+package query;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -10,11 +10,9 @@ import java.util.TreeMap;
 
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.DocsEnum;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.IndexSearcher;
@@ -24,9 +22,10 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.similarities.DefaultSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
+
+import common.exception.ResetException;
 
 public class TermCollector {
 	
@@ -62,11 +61,6 @@ public class TermCollector {
 		this(null, null, null, numDocs, numTerms);
 	}
 	
-	public TermCollector(Query query, ScoreDoc[] scoreDocs, IndexReader indexReader){
-		//top 10 terms in the top 10 retrieved documents will be selected by default
-		this(query, scoreDocs, indexReader, 10, 10);
-	}
-	
 	public TermCollector(Query query, ScoreDoc[] scoreDocs, IndexReader indexReader, int numDocs, int numTerms){
 		this.scoreDocs = scoreDocs;
 		this.indexReader = indexReader;
@@ -77,9 +71,17 @@ public class TermCollector {
 		this.numRetDocs = numDocs;
 		this.numTerms = numTerms;
 	}
-	
+	/**
+	 * Get top terms of current search
+	 * 
+	 * @return
+	 * @throws IOException 
+	 * @throws Exception 
+	 */
 	public Map<String, Float> getTerms() 
-			throws IOException{
+			throws ResetException, IOException{
+		if(queryTerms == null || scoreDocs == null || indexReader == null)
+			throw new ResetException("TermCollector must be reset before reusing");
 		rankTerms();
 //		System.out.println(termMap);
 		Map<String, Float> tmpMap = new HashMap<String, Float>();
@@ -95,20 +97,23 @@ public class TermCollector {
 		return tmpMap;
 	}
 	
+	/**
+	 * Get query terms of current search
+	 * 
+	 * @return
+	 */
 	public Set<String> getQueryTerms(){
 		return queryTerms;
 	}
 	
-	public void setQuery(Query q){
+	void reset(Query q, ScoreDoc[] scoreDocs, IndexReader indexReader){
 		queryTerms = extractTerms(q);
-	}
-	
-	public void setScoreDocs(ScoreDoc[] scoreDocs){
 		this.scoreDocs = scoreDocs;
+		this.indexReader = indexReader;
 	}
 	
-	public void setIndexReader(IndexReader indexReader){
-		this.indexReader = indexReader;
+	void clean(){
+		reset(null,null,null);
 	}
 	
 	private void rankTerms() 
@@ -124,7 +129,6 @@ public class TermCollector {
 		writer.close();
 		
 		IndexReader ireader = DirectoryReader.open(tmpDir);
-//		Bits liveDocs = MultiFields.getLiveDocs(ireader);
 		int numDocs = ireader.numDocs();
 		IndexSearcher searcher = new IndexSearcher(ireader);
 		ScoreDoc[] docs = searcher.search(new MatchAllDocsQuery(), numRetDocs).scoreDocs;
@@ -141,12 +145,6 @@ public class TermCollector {
 						idf = sim.idf(docFreq, numDocs);
 						idfMap.put(br, idf);
 					}
-					
-//					DocsEnum de = te.docs(liveDocs, null);
-//					int tf = 0;
-//					if(de == null) return;
-//					while(de.nextDoc() != DocsEnum.NO_MORE_DOCS)
-//						tf += de.freq();
 					
 					String term = br.utf8ToString();
 					if(termMap.containsKey(term)){

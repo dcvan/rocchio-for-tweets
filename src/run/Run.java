@@ -13,11 +13,12 @@ import org.apache.lucene.util.Version;
 import common.exception.FileExistsException;
 import common.exception.InstanceExistsException;
 import common.exception.InvalidParameterException;
+import common.exception.ResetException;
 import common.exception.TweetSearchEvaluatorException;
 import common.exception.WrongFileTypeException;
+import query.TermCollector;
 import query.TweetQueryLauncher;
 import query.TweetQueryMaker;
-import query.expansion.TermCollector;
 import eval.TweetSearchEvaluator;
 
 public class Run {
@@ -26,7 +27,7 @@ public class Run {
 			throws Exception{
 		Run run = new Run(new EnglishAnalyzer(Version.LUCENE_46), 10, 10);
 		run.run("first run");
-		run.getQueryMaker().expandQueries(run.getTracker().getLatestStat());
+		run.expandQueries();
 		run.run("second run");
 		for(Statistics stat : run.getTracker().getAllStat()){
 			System.out.println(stat);	
@@ -35,7 +36,7 @@ public class Run {
 	}
 	
 	private final static String RESULT_BASE = "test-collection/result-";
-	private final static String INDEX_BASE = System.getProperty("user.home") + "/Documents/tweets.index.1";
+	private final static String INDEX_BASE = System.getProperty("user.home") + "/Documents/tweets.index";
 	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/records";
 	private final static String TOP_PATH = "test-collection/topics.MB1-50.txt";
 	private final static String QREL_PATH = "test-collection/microblog11-qrels.txt";
@@ -46,6 +47,7 @@ public class Run {
 	private Date timestamp;
 	private TweetQueryMaker qmaker;
 	private RunTracker tracker;
+	private Statistics state;
 	private int numDocs;
 	private int numTerms;
 	
@@ -58,7 +60,8 @@ public class Run {
 	}
 	
 	public synchronized void run(String name) 
-			throws org.apache.lucene.queryparser.classic.ParseException, IOException, InvalidParameterException, TweetSearchEvaluatorException, FileExistsException, WrongFileTypeException, InstanceExistsException{
+			throws org.apache.lucene.queryparser.classic.ParseException, IOException, InvalidParameterException, TweetSearchEvaluatorException, FileExistsException, WrongFileTypeException, InstanceExistsException, ResetException{
+		state = new Statistics();
 		timestamp = new Date();
 		String result = new StringBuilder(RESULT_BASE)
 			.append(name.trim().replaceAll(" ", "-"))
@@ -69,23 +72,25 @@ public class Run {
 		TweetQueryLauncher launcher = new TweetQueryLauncher(INDEX_BASE, result, collector);
 		TweetSearchEvaluator evaluator = new TweetSearchEvaluator(QREL_PATH, result);
 		
-		tracker.writeName(name);
-		tracker.writeTimestamp(timestamp);
-		tracker.writeResultFile(result);
-		tracker.writeAnalyzer(qmaker.getAnalyzer().getClass().getSimpleName());
+		state.setName(name);
+		state.setTimestamp(timestamp.getTime());
+		state.setResult(result);
+		state.setAnalyzer(qmaker.getAnalyzer().getClass().getSimpleName());
 		for(Map.Entry<Integer, Query> entry : qmaker.getQueries().entrySet()){
+			Feedback f = new Feedback();
 			int topno = entry.getKey();
 			Query q = entry.getValue();
 			launcher.query(topno, q);
-			tracker.writeQuery(topno, q.toString());
-			tracker.writeQueryTerms(topno, launcher.getQueryTerms(topno));
-			tracker.writeFeedbackTerms(topno, launcher.getFeedbackTerms(topno));
+			f.setQuery(q.toString());
+			f.setQueryTerms(collector.getQueryTerms());
+			f.setTermScores(collector.getTerms());
+			state.addFeedback(topno, f);
 		}
 		
 		evaluator.evaluate(false, ALL_METRICS);
-		tracker.writeMetrics(evaluator.getScores(ALL_QUERIES));
-		tracker.commit();
-
+		state.setMetrics(evaluator.getScores(ALL_QUERIES));
+		
+		tracker.writeStat(state);
 		launcher.close();
 	}
 	
@@ -93,12 +98,13 @@ public class Run {
 		return timestamp;
 	}
 	
-	public TweetQueryMaker getQueryMaker(){
-		return qmaker;
-	}
-	
 	public RunTracker getTracker(){
 		return tracker;
+	}
+	
+	public void expandQueries() 
+			throws org.apache.lucene.queryparser.classic.ParseException{
+		qmaker.expandQueries(state);
 	}
 	
 	public void close() 

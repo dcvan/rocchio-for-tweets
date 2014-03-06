@@ -24,7 +24,11 @@ public class Feedback {
 	}
 	
 	public Set<String> getQueryTerms(){
-		return queryTerms;
+		return new HashSet<String>(queryTerms);
+	}
+	
+	public void setQueryTerms(Set<String> queryTerms){
+		this.queryTerms = queryTerms;
 	}
 	
 	public void addQueryTerms(String t){
@@ -32,12 +36,17 @@ public class Feedback {
 	}
 	
 	public Map<String, Float> getTermScores() {
-		return termScores;
+		return new HashMap<String, Float>(termScores);
+	}
+	
+	public void setTermScores(Map<String, Float> termScores){
+		this.termScores = new HashMap<String, Float>(termScores);
 	}
 	
 	public void addTerm(String term, Float score) {
 		termScores.put(term, score);
 	}
+	
 	
 	@Override
 	public String toString(){

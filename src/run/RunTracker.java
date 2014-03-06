@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -38,11 +37,9 @@ public class RunTracker {
 	private final static String F_TERM = "feedback terms";
 	private final static String METRIC = "metric";
 
-	private IndexWriter writer;
-	private File recDir;
-	private Document runRec;
-	private FieldType genericType;
-	private Date latest, latestTmp;
+	private final IndexWriter writer;
+	private final File recDir;
+	private final FieldType genericType;
 	
 	public RunTracker(String recPath) 
 			throws IOException{
@@ -53,43 +50,32 @@ public class RunTracker {
 		writer = new IndexWriter(FSDirectory.open(recDir), writerCfg);
 		genericType = new FieldType();
 		setFieldType(genericType);
-		runRec = new Document();
 	}
 	
-	public void writeName(String name){
-		runRec.add(new Field(NAME, name, genericType));
-	}
-	
-	public void writeTimestamp(Date date){
-		latestTmp = date;
-		runRec.add(new LongField(TIMESTAMP, latestTmp.getTime(), LongField.TYPE_STORED));
-	}
-	
-	public void writeResultFile(String path){
-		runRec.add(new Field(RESULT, path, genericType));
-	}
-	
-	public void writeAnalyzer(String analyzer){
-		runRec.add(new Field(ANALYZER, analyzer, genericType));
-	}
-	
-	public void writeQuery(int topno, String query){
-		runRec.add(new Field(String.valueOf(topno), QUERY + '-' + query, genericType));
-	}
-	
-	public void writeQueryTerms(int topno, Set<String> terms){
-		for(String t : terms)
-			runRec.add(new Field(String.valueOf(topno), Q_TERM + '-' + t, genericType));
-	}
-	
-	public void writeFeedbackTerms(int topno, Map<String, Float> terms){
-		for(Map.Entry<String, Float> entry : terms.entrySet())
-			runRec.add(new Field(String.valueOf(topno), F_TERM + '-' + entry.toString(), genericType));
-	}
-	
-	public void writeMetrics(Map<String, Double> metrics){
-		for(Map.Entry<String, Double> entry : metrics.entrySet())
-			runRec.add(new Field(METRIC, entry.toString(), genericType));
+	public void writeStat(Statistics stat) 
+			throws IOException{
+		Document record = new Document();
+		
+		record.add(new Field(NAME, stat.getName(), genericType));
+		record.add(new LongField(TIMESTAMP, stat.getTimestamp(), LongField.TYPE_STORED));
+		record.add(new Field(RESULT, stat.getResult(), genericType));
+		record.add(new Field(ANALYZER, stat.getAnalyzer(), genericType));
+		
+		Map<Integer, Feedback> feedbacks = stat.getFeedbacks();
+		for(Integer topno : feedbacks.keySet()){
+			Feedback f = feedbacks.get(topno);
+			record.add(new Field(String.valueOf(topno), QUERY + '-' + f.getQuery(), genericType));
+			for(String t : f.getQueryTerms())
+				record.add(new Field(String.valueOf(topno), Q_TERM + '-' + t, genericType));
+			for(Map.Entry<String, Float> entry : f.getTermScores().entrySet())
+				record.add(new Field(String.valueOf(topno), F_TERM + '-' + entry.toString(), genericType));
+		}
+		
+		for(Map.Entry<String, Double> entry : stat.getMetrics().entrySet())
+			record.add(new Field(METRIC, entry.toString(), genericType));
+		
+		writer.addDocument(record);
+		writer.commit();
 	}
 	
 	
@@ -114,22 +100,9 @@ public class RunTracker {
 		return getStat(new MatchAllDocsQuery());
 	}
 	
-	public void commit() 
-			throws IOException{
-		writer.addDocument(runRec);
-		latest = latestTmp;
-		runRec = new Document();
-		writer.commit();
-	}
-	
 	public void close() 
 			throws IOException{
 		writer.close();
-	}
-	
-	public Statistics getLatestStat() 
-			throws IOException{
-		return getStatbyTimestamp(latest);
 	}
 	
 	private void setFieldType(FieldType ft){

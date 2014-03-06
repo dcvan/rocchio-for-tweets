@@ -44,7 +44,8 @@ public class TweetQueryMaker {
 		return queries;
 	}
 	
-	public void expandQueries(Statistics stat){
+	public Map<Integer, Query> expandQueries(Statistics stat) 
+			throws org.apache.lucene.queryparser.classic.ParseException{
 		for(Map.Entry<Integer, Feedback> entry : stat.getFeedbacks().entrySet()){
 			int topno = entry.getKey();
 			StringBuilder sb = new StringBuilder(lastQueries.get(topno));
@@ -52,6 +53,8 @@ public class TweetQueryMaker {
 				sb.append(' ' + term);
 			lastQueries.put(topno, sb.toString());
 		}
+		
+		return getQueries();
 	}
 	
 	public Analyzer getAnalyzer(){
