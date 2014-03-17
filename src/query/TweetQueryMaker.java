@@ -17,6 +17,7 @@ import run.Statistics;
 
 public class TweetQueryMaker {
 	private final static String TEXT_FN = "text";
+	private final static String HTAG_FN = "hashtag";
 	
 	private Map<Integer, String> lastQueries;
 	private QueryParser parser;
@@ -51,6 +52,8 @@ public class TweetQueryMaker {
 			StringBuilder sb = new StringBuilder(lastQueries.get(topno));
 			for(String term : entry.getValue().getTermScores().keySet())
 				sb.append(' ' + term);
+			for(String htag : entry.getValue().getHashtags())
+				sb.append(' ' + HTAG_FN + ':' + htag);
 			lastQueries.put(topno, sb.toString());
 		}
 		

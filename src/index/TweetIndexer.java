@@ -2,6 +2,7 @@ package index;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
@@ -41,7 +42,6 @@ public class TweetIndexer {
 		
 		TweetIndexer indexer = new TweetIndexer(indexDir, parser,
 				new EnglishAnalyzer(Version.LUCENE_46));
-//				new TweetAnalyzer(Version.LUCENE_46));
 		
 		long start = System.currentTimeMillis();
 		indexer.run();
@@ -61,6 +61,7 @@ public class TweetIndexer {
 	private final static String DATETIME = "datetime";
 	private final static String USER = "user";
 	private final static String TEXT = "text";
+	private final static String HTAG = "hashtag";
 	
 	private TweetParser parser;
 	private Directory indexDir;
@@ -68,6 +69,7 @@ public class TweetIndexer {
 	
 	private FieldType userType;
 	private FieldType textType;
+	private FieldType htagType;
 	
 	/**
 	 * Constructor
@@ -99,6 +101,12 @@ public class TweetIndexer {
 		textType.setOmitNorms(false);
 		textType.setStoreTermVectors(true);
 		textType.setStoreTermVectorPositions(true);
+		
+		htagType = new FieldType(TextField.TYPE_STORED);
+		htagType.setOmitNorms(false);
+		htagType.setTokenized(true);
+		htagType.setStoreTermVectors(true);
+		htagType.setStoreTermVectorPositions(true);
 	}
 	
 	/**
@@ -142,7 +150,12 @@ public class TweetIndexer {
 		doc.add(new LongField(DATETIME, t.getDateTime(), LongField.TYPE_STORED));
 		doc.add(new Field(USER, t.getUser(), userType));
 		doc.add(new Field(TEXT, t.getText(), textType));
-
+		if(!t.getHashtags().isEmpty()){
+			Set<String> htags = t.getHashtags();
+			for(String tag : htags){
+				doc.add(new Field(HTAG, tag, htagType));
+			}
+		}
 		writer.addDocument(doc);
 	}
 	

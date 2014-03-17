@@ -35,6 +35,7 @@ public class RunTracker {
 	private final static String ANALYZER = "analyzer";
 	private final static String QUERY = "query";
 	private final static String Q_TERM = "query terms";
+	private final static String H_TERM = "hashtags";
 	private final static String F_TERM = "feedback terms";
 	private final static String METRIC = "metric";
 
@@ -65,11 +66,14 @@ public class RunTracker {
 		Map<Integer, Feedback> feedbacks = stat.getFeedbacks();
 		for(Integer topno : feedbacks.keySet()){
 			Feedback f = feedbacks.get(topno);
-			record.add(new Field(String.valueOf(topno), QUERY + '-' + f.getQuery(), genericType));
+			String topnostr = String.valueOf(topno);
+			record.add(new Field(topnostr, QUERY + '-' + f.getQuery(), genericType));
 			for(String t : f.getQueryTerms())
-				record.add(new Field(String.valueOf(topno), Q_TERM + '-' + t, genericType));
+				record.add(new Field(topnostr, Q_TERM + '-' + t, genericType));
+			for(String t : f.getHashtags())
+				record.add(new Field(topnostr, H_TERM + '-' + t, genericType));
 			for(Map.Entry<String, Float> entry : f.getTermScores().entrySet())
-				record.add(new Field(String.valueOf(topno), F_TERM + '-' + entry.toString(), genericType));
+				record.add(new Field(topnostr, F_TERM + '-' + entry.toString(), genericType));
 		}
 		
 		for(Map.Entry<String, Double> entry : stat.getMetrics().entrySet())
@@ -163,6 +167,8 @@ public class RunTracker {
 						feedback.setQuery(fs[1]);
 					}else if(fs[0].equals(Q_TERM)){
 						feedback.addQueryTerms(fs[1]);
+					}else if(fs[0].equals(H_TERM)){
+						feedback.addHashtag(fs[1]);
 					}else if(fs[0].equals(F_TERM)){
 						String[] ts = fs[1].split("=");
 						feedback.addTerm(ts[0], Float.parseFloat(ts[1]));

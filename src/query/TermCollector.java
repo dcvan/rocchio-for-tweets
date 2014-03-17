@@ -48,6 +48,7 @@ public class TermCollector {
 	}
 	
 	private final static String TEXT_FN = "text";
+	private final static String HTAG = "hashtag";
 	private ScoreDoc[] scoreDocs;
 	private IndexReader indexReader;
 	private Map<String, Float> termMap;
@@ -96,6 +97,22 @@ public class TermCollector {
 		}
 		
 		return tmpMap;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
+	public Set<String> getHashtags() 
+			throws IOException{
+		Set<String> htags = new HashSet<String>();
+		for(int i = 0; i < ((numRetDocs < scoreDocs.length) ? numRetDocs : scoreDocs.length); i ++){
+			String[] tags = indexReader.document(scoreDocs[i].doc).getValues(HTAG);
+			for(String t : tags)
+				if(t.length() >= 3) htags.add(t);
+		}
+		return htags;
 	}
 	
 	/**

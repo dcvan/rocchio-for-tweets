@@ -30,6 +30,7 @@ public class TweetQueryLauncher {
 	private PrintWriter writer;
 	private Map<Integer, Set<String>> queryTerms;
 	private Map<Integer, Map<String, Float>> termMap;
+	private Map<Integer, Set<String>> hashtags;
 	private TermCollector collector;
 	
 	public TweetQueryLauncher(String index, String res, TermCollector collector) 
@@ -52,6 +53,7 @@ public class TweetQueryLauncher {
 		
 		termMap = new HashMap<Integer, Map<String, Float>>();
 		queryTerms = new HashMap<Integer, Set<String>>();
+		hashtags = new HashMap<Integer, Set<String>>();
 	}
 	
 	public void query(int topno, Query q) 
@@ -65,6 +67,7 @@ public class TweetQueryLauncher {
 		
 		termMap.put(topno, collector.getTerms());
 		queryTerms.put(topno, collector.getQueryTerms());
+		hashtags.put(topno, collector.getHashtags());
 		
 		for(int i = 0; i < scoreDocs.length; i ++){
 			Document d = searcher.doc(scoreDocs[i].doc);
@@ -73,9 +76,13 @@ public class TweetQueryLauncher {
 		
 		//write top N terms to the output
 		Map<String, Float> terms = termMap.get(topno);
+		Set<String> htags = hashtags.get(topno);
 		System.out.println("---------------------");
 		for(Map.Entry<String, Float> e : terms.entrySet())
 			System.out.println(e);
+		System.out.println("******HASHTAGS******");
+		for(String tag : htags)
+			System.out.println(tag);
 		System.out.println("---------------------");
 	}
 	

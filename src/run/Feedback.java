@@ -8,11 +8,13 @@ import java.util.Set;
 public class Feedback {
 	private String query;
 	private Set<String> queryTerms;
+	private Set<String> hashtags;
 	private Map<String, Float> termScores;
 	
 	public Feedback(){
-		termScores = new HashMap<String, Float>();
 		queryTerms = new HashSet<String>();
+		hashtags = new HashSet<String>();
+		termScores = new HashMap<String, Float>();
 	}
 	
 	public String getQuery(){
@@ -35,6 +37,18 @@ public class Feedback {
 		queryTerms.add(t);
 	}
 	
+	public Set<String> getHashtags(){
+		return new HashSet<String>(hashtags);
+	}
+	
+	public void setHashtags(Set<String> htags){
+		this.hashtags = htags;
+	}
+	
+	public void addHashtag(String htag){
+		hashtags.add(htag);
+	}
+	
 	public Map<String, Float> getTermScores() {
 		return new HashMap<String, Float>(termScores);
 	}
@@ -53,6 +67,7 @@ public class Feedback {
 		StringBuilder sb = new StringBuilder();
 		return sb.append("query: (").append(query).append(")\n")
 			.append("query terms: ").append(queryTerms).append('\n')
+			.append("hashtags: ").append(hashtags).append('\n')
 			.append("feedback terms: ").append(termScores).append('\n').toString();
 	}
 }

@@ -17,8 +17,12 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.cybozu.labs.langdetect.Detector;
 import com.cybozu.labs.langdetect.DetectorFactory;
@@ -34,7 +38,7 @@ public class TweetParser {
 	public static void main(String[] args) 
 			throws WrongFileTypeException, LangDetectException, IOException, FileExistsException, InstanceExistsException{
 		if(args.length < 3 || args.length > 7){
-			System.err.println("Usage: java EnglishSnapshotCreator <source dir> <dest file> <language> [<start subdir> <start file> <end subdir> <end file>]");
+			System.err.println("Usage: java TweetParser <source dir> <dest file> <language> [<start subdir> <start file> <end subdir> <end file>]");
 			System.exit(1);
 		}
 		
@@ -115,11 +119,12 @@ public class TweetParser {
 	private final static String USER_REGEX = "<USER>(.*)</USER>";
 	private final static String TEXT_REGEX = "<TEXT>(.*)</TEXT>";
 	private final static String HTTP_REGEX = "http://[^ \t]*";
+	private final static String HTAG_REGEX = "#([A-Za-z0-9]*)";
 	
 	private int curDir, curFile;
 	private int endDir, endFile;
 	private File rootDir;
-	private Map<String, String> buf;
+	private Map<String, Object> buf;
 	private BufferedReader reader;
 	private String lang;
 	private boolean ignoreURL;
@@ -151,7 +156,7 @@ public class TweetParser {
 		hit = 0;
 		readingFile = "";
 		
-		buf = new HashMap<String, String>();
+		buf = new HashMap<String, Object>();
 		
 		DetectorFactory.loadProfile(langBase);
 		setLanguage("all");
@@ -247,7 +252,7 @@ public class TweetParser {
 	 * @throws IOException 
 	 * @throws ParseException 
 	 */
-	public synchronized boolean hasNext() 
+	public boolean hasNext() 
 			throws WrongFileTypeException, IOException{
 		boolean isDocStart = false;
 		String line = null;
@@ -273,7 +278,7 @@ public class TweetParser {
 				isDocStart = false;
 				total ++;
 				if(lang.equals("all")) break;
-				if(!checkLanguage(buf.get("text").replaceAll(TEXT_REGEX, "$1")))
+				if(!checkLanguage(((String) buf.get("text")).replaceAll(TEXT_REGEX, "$1")))
 					continue;
 				break;
 			}
@@ -287,6 +292,14 @@ public class TweetParser {
 					buf.put("user", line);
 				}else if(line.matches(TEXT_REGEX)){
 					buf.put("text", line);
+					if(line.contains("#")){
+						Pattern p = Pattern.compile(HTAG_REGEX);
+						Matcher m = p.matcher(line.replaceAll(TEXT_REGEX, "$1"));
+						HashSet<String> htags = new HashSet<String>();
+						while(m.find())
+							htags.add(m.group(1));
+						buf.put("hashtags", htags);
+					}
 				}
 			}
 		}while(line != null);
@@ -302,19 +315,21 @@ public class TweetParser {
 	 * 
 	 * @return - a Tweet instance;
 	 */
-	public synchronized Tweet next(){
-		String docNo = buf.get("docno").replaceAll(DOCNO_REGEX, "$1").trim();
+	public Tweet next(){
+		String docNo = ((String) buf.get("docno")).replaceAll(DOCNO_REGEX, "$1").trim();
 		long datetime;
 		try {
 			 datetime = df.parse(
-					buf.get("datetime").replaceAll(DATETIME_REGEX, "$1").trim()).getTime();
+					((String) buf.get("datetime")).replaceAll(DATETIME_REGEX, "$1").trim()).getTime();
 		} catch (ParseException e) {
 			datetime = 0;
 		}
-		String user = buf.get("user").replaceAll(USER_REGEX, "$1").trim();
-		String text = buf.get("text").replaceAll(TEXT_REGEX, "$1").trim();
-		
-		return new Tweet(docNo, datetime, user, text);
+		String user = ((String) buf.get("user")).replaceAll(USER_REGEX, "$1").trim();
+		String text = ((String) buf.get("text")).replaceAll(TEXT_REGEX, "$1").trim();
+		if(buf.containsKey("hashtags"))
+			return new Tweet(docNo, datetime, user, text, (Set<String>)buf.get("hashtags"));
+		else
+			return new Tweet(docNo, datetime, user, text);
 	}
 	
 	/**
@@ -328,6 +343,8 @@ public class TweetParser {
 			.append(buf.get("datetime")).append('\n')
 			.append(buf.get("user")).append('\n')
 			.append(buf.get("text")).append('\n');
+		if(buf.containsKey("hashtags"))
+			sb.append(buf.get("hashtags")).append('\n');
 		return sb.toString();
 	}
 	
@@ -336,8 +353,8 @@ public class TweetParser {
 	 * 
 	 * @return - a map containing a raw tweet
 	 */
-	public Map<String, String> nextRawMap(){
-		return new HashMap<String, String>(buf);
+	public Map<String, Object> nextRawMap(){
+		return new HashMap<String, Object>(buf);
 	}
 	
 	/**

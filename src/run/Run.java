@@ -32,14 +32,15 @@ public class Run {
 		run.run("second run");
 		long t2 = run.getTimestamp();
 		run.expandQueries();
-		run.run("third run");
-		long t3 = run.getTimestamp();
+//		run.run("third run");
+//		long t3 = run.getTimestamp();
 		
 		String[] metrics = {"P_30", "map", "ndcg"};
 		Map<String, Double> m1 = run.getTracker().getMetrics(t1, metrics);
 		Map<String, Double> m2 = run.getTracker().getMetrics(t2, metrics);
-//		Map<String, Double> m3 = run.getTracker().getMetrics(t3, metrics);
 		
+//		Map<String, Double> m3 = run.getTracker().getMetrics(t3, metrics);
+
 		System.out.println(m1);
 		System.out.println(m2);
 //		System.out.println(m3);
@@ -63,7 +64,7 @@ public class Run {
 	}
 	
 	private final static String RESULT_BASE = "test-collection/result-";
-	private final static String INDEX_BASE = System.getProperty("user.home") + "/Documents/tweets.index";
+	private final static String INDEX_BASE = System.getProperty("user.home") + "/Documents/tweets.index.2";
 	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/records";
 	private final static String TOP_PATH = "test-collection/topics.MB1-50.txt";
 	private final static String QREL_PATH = "test-collection/microblog11-qrels.txt";
@@ -86,7 +87,7 @@ public class Run {
 		this.numTerms = numTerms;
 	}
 	
-	public synchronized void run(String name) 
+	public void run(String name) 
 			throws org.apache.lucene.queryparser.classic.ParseException, IOException, InvalidParameterException, TweetSearchEvaluatorException, FileExistsException, WrongFileTypeException, InstanceExistsException, ResetException{
 		state = new Statistics();
 		timestamp = new Date().getTime();
@@ -110,6 +111,7 @@ public class Run {
 			launcher.query(topno, q);
 			f.setQuery(q.toString());
 			f.setQueryTerms(collector.getQueryTerms());
+			f.setHashtags(collector.getHashtags());
 			f.setTermScores(collector.getTerms());
 			state.addFeedback(topno, f);
 		}
