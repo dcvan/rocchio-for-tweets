@@ -80,9 +80,11 @@ public class TweetQueryLauncher {
 		System.out.println("---------------------");
 		for(Map.Entry<String, Float> e : terms.entrySet())
 			System.out.println(e);
-		System.out.println("******HASHTAGS******");
-		for(String tag : htags)
-			System.out.println(tag);
+		if(htags.size() > 0){
+			System.out.println("******HASHTAGS******");
+			for(String tag : htags)
+				System.out.println(tag);
+		}
 		System.out.println("---------------------");
 	}
 	

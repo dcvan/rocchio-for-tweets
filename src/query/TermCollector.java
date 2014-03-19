@@ -13,7 +13,9 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
@@ -48,7 +50,7 @@ public class TermCollector {
 	}
 	
 	private final static String TEXT_FN = "text";
-	private final static String HTAG = "hashtag";
+	private final static String HTAG_FN = "hashtag";
 	private ScoreDoc[] scoreDocs;
 	private IndexReader indexReader;
 	private Map<String, Float> termMap;
@@ -108,9 +110,15 @@ public class TermCollector {
 			throws IOException{
 		Set<String> htags = new HashSet<String>();
 		for(int i = 0; i < ((numRetDocs < scoreDocs.length) ? numRetDocs : scoreDocs.length); i ++){
-			String[] tags = indexReader.document(scoreDocs[i].doc).getValues(HTAG);
-			for(String t : tags)
-				if(t.length() >= 3) htags.add(t);
+			Terms v = indexReader.getTermVector(scoreDocs[i].doc, HTAG_FN);
+			if(v == null) continue;
+			TermsEnum te = v.iterator(null);
+			BytesRef br;
+			while((br = te.next()) != null){
+				if(te.seekExact(br)){
+					htags.add(br.utf8ToString());
+				}
+			}
 		}
 		return htags;
 	}

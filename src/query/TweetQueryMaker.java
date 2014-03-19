@@ -50,10 +50,18 @@ public class TweetQueryMaker {
 		for(Map.Entry<Integer, Feedback> entry : stat.getFeedbacks().entrySet()){
 			int topno = entry.getKey();
 			StringBuilder sb = new StringBuilder(lastQueries.get(topno));
+			
+			//add top M selected terms in top N retrieved tweets into the query
 			for(String term : entry.getValue().getTermScores().keySet())
 				sb.append(' ' + term);
+			
+			//add hashtags in top N retrieved tweets into the query
 			for(String htag : entry.getValue().getHashtags())
-				sb.append(' ' + HTAG_FN + ':' + htag);
+				//query against hashtag field
+//				sb.append(' ' + HTAG_FN + ':' + htag);
+				//query against text field
+				sb.append(' ' + htag);
+
 			lastQueries.put(topno, sb.toString());
 		}
 		

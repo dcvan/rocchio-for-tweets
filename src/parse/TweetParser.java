@@ -299,6 +299,8 @@ public class TweetParser {
 						while(m.find())
 							htags.add(m.group(1));
 						buf.put("hashtags", htags);
+					}else{
+						buf.remove("hashtags");
 					}
 				}
 			}
