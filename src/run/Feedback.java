@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+
+import query.ValueComparator;
 
 public class Feedback {
 	private String query;
@@ -50,11 +53,14 @@ public class Feedback {
 	}
 	
 	public Map<String, Float> getTermScores() {
-		return new HashMap<String, Float>(termScores);
+		Map<String, Float> sortedMap = new TreeMap<String, Float>(
+				new ValueComparator(termScores));
+		sortedMap.putAll(termScores);
+		return sortedMap;
 	}
 	
 	public void setTermScores(Map<String, Float> termScores){
-		this.termScores = new HashMap<String, Float>(termScores);
+		this.termScores.putAll(termScores);;
 	}
 	
 	public void addTerm(String term, Float score) {

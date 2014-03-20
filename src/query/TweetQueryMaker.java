@@ -2,6 +2,7 @@ package query;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -36,6 +37,10 @@ public class TweetQueryMaker {
 		topReader.close();
 	}
 	
+	public TweetQueryMaker(String topSrc, Analyzer analyzer, double step){
+		
+	}
+	
 	public Map<Integer, Query> getQueries() 
 			throws org.apache.lucene.queryparser.classic.ParseException{
 		Map<Integer, Query> queries = new TreeMap<Integer, Query>();
@@ -47,20 +52,38 @@ public class TweetQueryMaker {
 	
 	public Map<Integer, Query> expandQueries(Statistics stat) 
 			throws org.apache.lucene.queryparser.classic.ParseException{
+		return expandQueries(stat, 0.0);
+	}
+	
+	public Map<Integer, Query> expandQueries(Statistics stat, double step) 
+			throws org.apache.lucene.queryparser.classic.ParseException{
+		
 		for(Map.Entry<Integer, Feedback> entry : stat.getFeedbacks().entrySet()){
+			double boostBase = step * 10;
+//			double boostBase = 1.0;
 			int topno = entry.getKey();
 			StringBuilder sb = new StringBuilder(lastQueries.get(topno));
-			
+
 			//add top M selected terms in top N retrieved tweets into the query
-			for(String term : entry.getValue().getTermScores().keySet())
-				sb.append(' ' + term);
+			int cnt = 0;
+			Map<String, Float> termMap = entry.getValue().getTermScores();
+			float cur = Collections.max(termMap.values());
 			
+			for(String term : termMap.keySet()){
+				if(termMap.get(term) < cur){
+					cnt ++;
+					cur = termMap.get(term);
+				}
+				double boost = boostBase - step * cnt;
+				if(boost < 0) boost = 0;
+				sb.append(' ' + term + '^' + String.valueOf(boost));
+			}
 			//add hashtags in top N retrieved tweets into the query
-			for(String htag : entry.getValue().getHashtags())
+//			for(String htag : entry.getValue().getHashtags())
 				//query against hashtag field
 //				sb.append(' ' + HTAG_FN + ':' + htag);
 				//query against text field
-				sb.append(' ' + htag);
+//				sb.append(' ' + htag);
 
 			lastQueries.put(topno, sb.toString());
 		}

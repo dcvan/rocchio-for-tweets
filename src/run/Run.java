@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
@@ -26,21 +27,35 @@ public class Run {
 	public static void main(String[] args) 
 			throws Exception{
 		Run run = new Run(new EnglishAnalyzer(Version.LUCENE_46), 10, 10);
-		run.run("first run");
+		run.run("terms htags in query before");
 		long t1 = run.getTimestamp();
-		run.expandQueries();
-		run.run("second run");
+		run.expandQueries(10.0);
+		run.run("terms htags in query after");
 		long t2 = run.getTimestamp();
-		run.expandQueries();
+//		run.expandQueries();
 //		run.run("third run");
 //		long t3 = run.getTimestamp();
 		
 		String[] metrics = {"P_30", "map", "ndcg"};
 		Map<String, Double> m1 = run.getTracker().getMetrics(t1, metrics);
-		Map<String, Double> m2 = run.getTracker().getMetrics(t2, metrics);
+		Map<Integer, String> q1 = run.getTracker().getQueries(t1);
+		Map<Integer, Set<String>> qt1 = run.getTracker().getAllQueryTerms(t1);
+		Map<Integer, Set<String>> ht1 = run.getTracker().getAllHashtags(t1);
 		
+		Map<String, Double> m2 = run.getTracker().getMetrics(t2, metrics);
+		Map<Integer, String> q2 = run.getTracker().getQueries(t2);
+		Map<Integer, Set<String>> qt2 = run.getTracker().getAllQueryTerms(t2);
+		Map<Integer, Set<String>> ht2 = run.getTracker().getAllHashtags(t2);
 //		Map<String, Double> m3 = run.getTracker().getMetrics(t3, metrics);
 
+		System.out.println(q1);
+//		System.out.println(qt1);
+//		System.out.println(ht1);
+		
+		System.out.println(q2);
+//		System.out.println(qt2);
+//		System.out.println(ht2);
+		
 		System.out.println(m1);
 		System.out.println(m2);
 //		System.out.println(m3);
@@ -136,8 +151,13 @@ public class Run {
 		qmaker.expandQueries(state);
 	}
 	
+	public void expandQueries(double step)
+			throws org.apache.lucene.queryparser.classic.ParseException{
+		qmaker.expandQueries(state, step);
+	}
 	public void close() 
 			throws IOException{
 		tracker.close();
 	}
+	
 }

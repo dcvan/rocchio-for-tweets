@@ -1,7 +1,6 @@
 package query;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -13,7 +12,6 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -30,24 +28,6 @@ import org.apache.lucene.util.Version;
 import common.exception.ResetException;
 
 public class TermCollector {
-	
-	private class ValueComparator implements Comparator<String>{
-		
-		private Map<String, Float> map;
-		public ValueComparator(Map<String, Float> map){
-			this.map = map;
-		}
-		
-		@Override
-		public int compare(String arg0, String arg1) {
-			Float v0 = map.get(arg0);
-			Float v1 = map.get(arg1);
-			if(v0.equals(v1))
-				return arg0.compareTo(arg1);
-			return - v0.compareTo(v1);
-		}
-		
-	}
 	
 	private final static String TEXT_FN = "text";
 	private final static String HTAG_FN = "hashtag";
@@ -93,12 +73,16 @@ public class TermCollector {
 			if(cnt == numTerms) break;
 //			if(term.length() < 3) continue;
 //			if(term.equals("http") || term.equals("bit.li")) continue;
-			cnt ++;
 //			if(queryTerms.contains(term)) continue;
+			cnt ++;
  			tmpMap.put(term, termMap.get(term));
 		}
 		
-		return tmpMap;
+		Map<String, Float> sortedMap = new TreeMap<String, Float>(
+				new ValueComparator(tmpMap));
+		sortedMap.putAll(tmpMap);
+		
+		return sortedMap;
 	}
 	
 	/**

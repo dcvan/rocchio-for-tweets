@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.lucene.document.Document;
@@ -118,6 +119,61 @@ public class RunTracker {
 			res.put(m, metricMap.get(m));
 		return res;
 	}
+
+	public String getQuery(long timestamp, int topno) 
+			throws IOException{
+		return getStatByTimestamp(timestamp).getFeedback(topno).getQuery();
+	}
+	
+	public Map<Integer, String> getQueries(long timestamp) 
+			throws IOException{
+		Map<Integer, Feedback> feedbacks = getStatByTimestamp(timestamp).getFeedbacks();
+		Map<Integer, String> queries = new TreeMap<Integer, String>();
+		for(Integer topno : feedbacks.keySet())
+			queries.put(topno, feedbacks.get(topno).getQuery());
+		return queries;
+	}
+	
+	public Set<String> getQueryTerms(long timestamp, int topno) 
+			throws IOException{
+		return getStatByTimestamp(timestamp).getFeedback(topno).getQueryTerms();
+	}
+	
+	public Map<Integer, Set<String>> getAllQueryTerms(long timestamp) 
+			throws IOException{
+		Map<Integer, Feedback> feedbacks = getStatByTimestamp(timestamp).getFeedbacks();
+		Map<Integer, Set<String>> res = new TreeMap<Integer, Set<String>>();
+		for(Integer topno : feedbacks.keySet())
+			res.put(topno, feedbacks.get(topno).getQueryTerms());
+		return res;
+	}
+	
+	public Set<String> getHashtags(long timestamp, int topno) 
+			throws IOException{
+		return getStatByTimestamp(timestamp).getFeedback(topno).getHashtags();
+	}
+	
+	public Map<Integer, Set<String>> getAllHashtags(long timestamp) 
+			throws IOException{
+		Map<Integer, Feedback> feedbacks = getStatByTimestamp(timestamp).getFeedbacks();
+		Map<Integer, Set<String>> res = new TreeMap<Integer, Set<String>>();
+		for(Integer topno : feedbacks.keySet())
+			res.put(topno, feedbacks.get(topno).getHashtags());
+		return res;
+	}
+	
+//	public boolean exists(String name) 
+//			throws IOException{
+//		IndexSearcher searcher = new IndexSearcher(
+//				DirectoryReader.open(
+//						FSDirectory.open(recDir)));
+//		Query q = new TermQuery(new Term(NAME, name));
+//		TopDocs hits = searcher.search(q, Integer.MAX_VALUE);
+//		if(hits.totalHits > 0) 
+//			return true;
+//		else 
+//			return false;
+//	}
 	
 	public void close() 
 			throws IOException{
