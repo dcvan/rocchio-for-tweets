@@ -27,7 +27,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
-public class RunTracker {
+public class SearchTracker {
 	
 	private final static int UNLIMITED = Integer.MAX_VALUE;
 	private final static String NAME = "name";
@@ -44,7 +44,7 @@ public class RunTracker {
 	private final File recDir;
 	private final FieldType genericType;
 	
-	public RunTracker(String recPath) 
+	public SearchTracker(String recPath) 
 			throws IOException{
 		recDir = new File(recPath);
 		if(!recDir.exists())

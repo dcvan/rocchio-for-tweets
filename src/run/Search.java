@@ -22,14 +22,14 @@ import query.TweetQueryLauncher;
 import query.TweetQueryMaker;
 import eval.TweetSearchEvaluator;
 
-public class Run {
+public class Search {
 
 	public static void main(String[] args) 
 			throws Exception{
-		Run run = new Run(new EnglishAnalyzer(Version.LUCENE_46), 10, 10);
+		Search run = new Search(new EnglishAnalyzer(Version.LUCENE_46), 10, 10);
 		run.run("terms htags in query before");
 		long t1 = run.getTimestamp();
-		run.expandQueries(10.0);
+		run.expandQueriesWithTopTerms(0.1);
 		run.run("terms htags in query after");
 		long t2 = run.getTimestamp();
 //		run.expandQueries();
@@ -89,15 +89,15 @@ public class Run {
 	
 	private long timestamp;
 	private TweetQueryMaker qmaker;
-	private RunTracker tracker;
+	private SearchTracker tracker;
 	private Statistics state;
 	private int numDocs;
 	private int numTerms;
 	
-	public Run(Analyzer analyzer, int numDocs, int numTerms) 
+	public Search(Analyzer analyzer, int numDocs, int numTerms) 
 			throws IOException, ParseException{
 		qmaker = new TweetQueryMaker(TOP_PATH, analyzer);
-		tracker = new RunTracker(REC_BASE);
+		tracker = new SearchTracker(REC_BASE);
 		this.numDocs = numDocs;
 		this.numTerms = numTerms;
 	}
@@ -142,19 +142,26 @@ public class Run {
 		return timestamp;
 	}
 	
-	public RunTracker getTracker(){
+	public SearchTracker getTracker(){
 		return tracker;
 	}
 	
-	public void expandQueries() 
+	
+	public void expandQueriesWithTopTerms(double step)
 			throws org.apache.lucene.queryparser.classic.ParseException{
-		qmaker.expandQueries(state);
+		qmaker.expandQueries(state, step, true, false);
 	}
 	
-	public void expandQueries(double step)
+	public void expandQueriesWithHashtags(double step) 
 			throws org.apache.lucene.queryparser.classic.ParseException{
-		qmaker.expandQueries(state, step);
+		qmaker.expandQueries(state, step, false, true);
 	}
+	
+	public void expandQueriesWithAllTerms(double step) 
+			throws org.apache.lucene.queryparser.classic.ParseException{
+		qmaker.expandQueries(state, step, true, true);
+	}
+	
 	public void close() 
 			throws IOException{
 		tracker.close();

@@ -18,7 +18,6 @@ import run.Statistics;
 
 public class TweetQueryMaker {
 	private final static String TEXT_FN = "text";
-	private final static String HTAG_FN = "hashtag";
 	
 	private Map<Integer, String> lastQueries;
 	private QueryParser parser;
@@ -50,12 +49,7 @@ public class TweetQueryMaker {
 		return queries;
 	}
 	
-	public Map<Integer, Query> expandQueries(Statistics stat) 
-			throws org.apache.lucene.queryparser.classic.ParseException{
-		return expandQueries(stat, 0.0);
-	}
-	
-	public Map<Integer, Query> expandQueries(Statistics stat, double step) 
+	public Map<Integer, Query> expandQueries(Statistics stat, double step, boolean withTopTerms, boolean withHashtags) 
 			throws org.apache.lucene.queryparser.classic.ParseException{
 		
 		for(Map.Entry<Integer, Feedback> entry : stat.getFeedbacks().entrySet()){
@@ -64,26 +58,27 @@ public class TweetQueryMaker {
 			int topno = entry.getKey();
 			StringBuilder sb = new StringBuilder(lastQueries.get(topno));
 
-			//add top M selected terms in top N retrieved tweets into the query
-			int cnt = 0;
-			Map<String, Float> termMap = entry.getValue().getTermScores();
-			float cur = Collections.max(termMap.values());
-			
-			for(String term : termMap.keySet()){
-				if(termMap.get(term) < cur){
-					cnt ++;
-					cur = termMap.get(term);
+			if(withTopTerms){
+				//add top M selected terms in top N retrieved tweets into the query
+				int cnt = 0;
+				Map<String, Float> termMap = entry.getValue().getTermScores();
+				float cur = Collections.max(termMap.values());
+				
+				for(String term : termMap.keySet()){
+					if(termMap.get(term) < cur){
+						cnt ++;
+						cur = termMap.get(term);
+					}
+					double boost = boostBase - step * cnt;
+					if(boost < 0) boost = 0;
+					sb.append(' ' + term + '^' + String.valueOf(boost));
 				}
-				double boost = boostBase - step * cnt;
-				if(boost < 0) boost = 0;
-				sb.append(' ' + term + '^' + String.valueOf(boost));
 			}
 			//add hashtags in top N retrieved tweets into the query
-//			for(String htag : entry.getValue().getHashtags())
-				//query against hashtag field
-//				sb.append(' ' + HTAG_FN + ':' + htag);
-				//query against text field
-//				sb.append(' ' + htag);
+			if(withHashtags){
+				for(String htag : entry.getValue().getHashtags())
+					sb.append(' ' + htag);
+			}
 
 			lastQueries.put(topno, sb.toString());
 		}
