@@ -4,12 +4,9 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.util.Version;
 
 import common.exception.FileExistsException;
 import common.exception.InstanceExistsException;
@@ -26,56 +23,7 @@ public class Search {
 
 	public static void main(String[] args) 
 			throws Exception{
-		Search run = new Search(new EnglishAnalyzer(Version.LUCENE_46), 10, 10);
-		run.run("terms htags in query before");
-		long t1 = run.getTimestamp();
-		run.expandQueriesWithTopTerms(0.1);
-		run.run("terms htags in query after");
-		long t2 = run.getTimestamp();
-//		run.expandQueries();
-//		run.run("third run");
-//		long t3 = run.getTimestamp();
-		
-		String[] metrics = {"P_30", "map", "ndcg"};
-		Map<String, Double> m1 = run.getTracker().getMetrics(t1, metrics);
-		Map<Integer, String> q1 = run.getTracker().getQueries(t1);
-		Map<Integer, Set<String>> qt1 = run.getTracker().getAllQueryTerms(t1);
-		Map<Integer, Set<String>> ht1 = run.getTracker().getAllHashtags(t1);
-		
-		Map<String, Double> m2 = run.getTracker().getMetrics(t2, metrics);
-		Map<Integer, String> q2 = run.getTracker().getQueries(t2);
-		Map<Integer, Set<String>> qt2 = run.getTracker().getAllQueryTerms(t2);
-		Map<Integer, Set<String>> ht2 = run.getTracker().getAllHashtags(t2);
-//		Map<String, Double> m3 = run.getTracker().getMetrics(t3, metrics);
 
-		System.out.println(q1);
-//		System.out.println(qt1);
-//		System.out.println(ht1);
-		
-		System.out.println(q2);
-//		System.out.println(qt2);
-//		System.out.println(ht2);
-		
-		System.out.println(m1);
-		System.out.println(m2);
-//		System.out.println(m3);
-		System.out.println();
-		
-		for(String m : metrics){
-			double incr = (m2.get(m) - m1.get(m)) / m1.get(m);
-			System.out.printf("Improvement of %s is %.4f\n", m, incr);
-		}
-
-		System.out.println();
-
-//		for(String m : metrics){
-//			double incr = (m3.get(m) - m2.get(m)) / m2.get(m);
-//			System.out.printf("Improvement of %s is %.4f\n", m, incr);
-//		}
-//		for(Statistics stat : run.getTracker().getAllStat()){
-//			System.out.println(stat);	
-//		}
-		run.close();
 	}
 	
 	private final static String RESULT_BASE = "test-collection/result-";
@@ -102,13 +50,11 @@ public class Search {
 		this.numTerms = numTerms;
 	}
 	
-	public void run(String name) 
+	public void start(String name) 
 			throws org.apache.lucene.queryparser.classic.ParseException, IOException, InvalidParameterException, TweetSearchEvaluatorException, FileExistsException, WrongFileTypeException, InstanceExistsException, ResetException{
 		state = new Statistics();
 		timestamp = new Date().getTime();
 		String result = new StringBuilder(RESULT_BASE)
-			.append(name.trim().replaceAll(" ", "-"))
-			.append('-')
 			.append(timestamp)
 			.append(".txt").toString();
 		TermCollector collector = new TermCollector(numDocs, numTerms);

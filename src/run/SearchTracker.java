@@ -52,7 +52,11 @@ public class SearchTracker {
 		IndexWriterConfig writerCfg = new IndexWriterConfig(Version.LUCENE_46, null);
 		writer = new IndexWriter(FSDirectory.open(recDir), writerCfg);
 		genericType = new FieldType();
-		setFieldType(genericType);
+		genericType.setStored(true);
+		genericType.setIndexed(true);
+		genericType.setTokenized(false);
+		genericType.setStoreTermVectors(false);
+		genericType.setOmitNorms(true);
 	}
 	
 	public void writeStat(Statistics stat) 
@@ -178,14 +182,6 @@ public class SearchTracker {
 	public void close() 
 			throws IOException{
 		writer.close();
-	}
-	
-	private void setFieldType(FieldType ft){
-		ft.setStored(true);
-		ft.setIndexed(true);
-		ft.setTokenized(false);
-		ft.setStoreTermVectorOffsets(false);
-		ft.setOmitNorms(true);
 	}
 	
 	private ArrayList<Statistics> getStat(Query q) 
