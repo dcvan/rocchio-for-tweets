@@ -7,19 +7,12 @@ import java.text.ParseException;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongField;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
@@ -31,26 +24,6 @@ import common.exception.TweetSearchEvaluatorException;
 import common.exception.WrongFileTypeException;
 
 public class Run {
-
-	
-	public static void main(String[] args) 
-			throws IOException, ParseException, org.apache.lucene.queryparser.classic.ParseException, InvalidParameterException, TweetSearchEvaluatorException, FileExistsException, WrongFileTypeException, InstanceExistsException, ResetException{
-		RunConfig config = new RunConfig(10, 10, 
-				new EnglishAnalyzer(Version.LUCENE_46), 0.1, true, false, 
-				new String[]{"P_30", "map", "ndcg"}, "test");
-		
-		Run run = new Run();
-		run.go(config, 4);
-		run.close();
-		
-		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(REC_BASE))));
-		TopDocs hits = searcher.search(new MatchAllDocsQuery(), Integer.MAX_VALUE);
-		for(ScoreDoc sd : hits.scoreDocs){
-			Document d = searcher.doc(sd.doc);
-			for(IndexableField f : d.getFields())
-				System.out.println(f.name() + ": " + f.stringValue());
-		}
-	}
 
 	public final static String TIMESTAMP = "timestamp";
 	public final static String DOC_NUM = "document number";
@@ -93,34 +66,40 @@ public class Run {
 		doc.add(new Field(WITH_HASHTAGS, String.valueOf(config.isWithHashtags()), genericType));
 		
 		Search search = new Search(config.getAnalyzer(), config.getDocNum(), config.getTermNum());
-		search.start(config.getNote());
-		long t = search.getTimestamp();
-		doc.add(new LongField(TIMESTAMP, t, LongField.TYPE_STORED));
-		Map<String, Double> baseline = search.getTracker().getMetrics(t, config.getMetrics());
-		doc.add(new Field(METRICS, baseline.toString(), genericType));
-
-		for(int i = 1; i < iterNum; i ++){
-			if(config.isWithTerms() && config.isWithHashtags())
-				search.expandQueriesWithAllTerms(config.getStep());
-			else if(config.isWithTerms())
-				search.expandQueriesWithTopTerms(config.getStep());
-			else if(config.isWithHashtags())
-				search.expandQueriesWithHashtags(config.getStep());
+		boolean isWithTerms = config.isWithTerms(), isWithHashtags = config.isWithHashtags();
+		String[] metrics = config.getMetrics();
+		Map<String, Double> baseMetrics = new TreeMap<String, Double>();
+		for(String m : metrics)
+			baseMetrics.put(m, 0.0);
+		
+		for(int i = 0; i < iterNum; i ++){
 			search.start(config.getNote());
-			t = search.getTimestamp();
-			Map<String, Double> metrics = search.getTracker().getMetrics(t, config.getMetrics());
-			doc.add(new Field(METRICS, metrics.toString(), genericType));
+			long t = search.getTimestamp();
+			if(i == 0)
+				doc.add(new LongField(TIMESTAMP, t, LongField.TYPE_STORED));
+			Map<String, Double> curMetrics = search.getTracker().getMetrics(t, metrics);
+			doc.add(new Field(METRICS, curMetrics.toString(), genericType));
 
-			if(i == iterNum - 1){
+			if(isWithTerms && isWithHashtags)
+				search.expandQueriesWithAllTerms(config.getStep());
+			else if(isWithTerms)
+				search.expandQueriesWithTopTerms(config.getStep());
+			else if(isWithHashtags)
+				search.expandQueriesWithHashtags(config.getStep());
+			
+			if(i > 0 && i == iterNum - 1){
 				Map<String, Double> impr = new TreeMap<String, Double>();
-				for(String m : config.getMetrics()){
-					double incr = (metrics.get(m) - baseline.get(m)) / baseline.get(m);
+				for(String m : metrics){
+					double incr = (curMetrics.get(m) - baseMetrics.get(m)) / baseMetrics.get(m);
 					impr.put(m, new BigDecimal(incr).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue());
 				}
 				doc.add(new Field(IMPROVE, impr.toString(), genericType));
 			}
+			
+			baseMetrics.putAll(curMetrics);
 		}
 		writer.addDocument(doc);
+		writer.commit();
 		search.close();
 	}
 	
