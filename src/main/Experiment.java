@@ -15,6 +15,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
@@ -36,28 +37,63 @@ public class Experiment {
 				new String[]{"P_30", "map", "ndcg"}, "num of iterations");
 		
 		Run run = new Run();
-		for(int i = 2; i < 6; i ++)
+		for(int i = 3; i <= 7; i ++)
 			run.go(config, i);
 		
-		config.setNote("num of top M terms in top N docs with decreasing boost at a specific step");
-		for(int i = 5; i <= 25; i += 5){
-			config.setDocNum(i);
-			for(int j = 5; j <= 25; j += 5){
-				config.setTermNum(j);
-				for(double k = 0.1; k < 1.0; k += 0.3){
-					config.setStep(k);
-					run.go(config, 2);
-				}
-				for(double k = 1.0; k < 10; k += 3){
-					config.setStep(k);
-					run.go(config, 2);
-				}
-			}
-		}
+//		config.setNote("prepare data");
+//		for(int i = 5; i <= 25; i += 5){
+//			config.setDocNum(i);
+//			for(int j = 5; j <= 25; j += 5){
+//				config.setTermNum(j);
+//				for(double k = 0.1; k < 1.0; k += 0.1){
+//					config.setStep(k);
+//					run.go(config, 2);
+//					config.setWithHashtags(true);
+//					run.go(config, 2);
+//					config.setWithTerms(false);
+//					run.go(config, 2);
+//					config.setWithHashtags(false);
+//					config.setWithTerms(true);
+//				}
+//			}
+//		}
+//		
+//		for(int i = 100; i <= 500; i += 100){
+//			config.setDocNum(i);
+//			for(int j = 5; j <= 25; j += 5){
+//				config.setTermNum(j);
+//				for(double k = 0.1; k < 1.0; k += 0.1){
+//					config.setStep(k);
+//					run.go(config, 2);
+//					config.setWithHashtags(true);
+//					run.go(config, 2);
+//					config.setWithTerms(false);
+//					run.go(config, 2);
+//					config.setWithHashtags(false);
+//					config.setWithTerms(true);
+//				}
+//			}
+//		}
+//		
+//		config.setDocNum(1000);
+//		for(int j = 5; j <= 25; j += 5){
+//			config.setTermNum(j);
+//			for(double k = 0.1; k < 1.0; k += 0.1){
+//				config.setStep(k);
+//				run.go(config, 2);
+//				config.setWithHashtags(true);
+//				run.go(config, 2);
+//				config.setWithTerms(false);
+//				run.go(config, 2);
+//				config.setWithHashtags(false);
+//				config.setWithTerms(true);
+//			}
+//		}
 		
 		run.close();
-		
-		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(REC_BASE))));
+
+		Directory runRec = FSDirectory.open(new File(REC_BASE));
+		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(runRec));
 		TopDocs hits = searcher.search(new MatchAllDocsQuery(), Integer.MAX_VALUE);
 		Map<Long, Document> res = new TreeMap<Long, Document>();
 		for(ScoreDoc sd : hits.scoreDocs){
@@ -71,5 +107,8 @@ public class Experiment {
 				System.out.println(f.name() + ": " + f.stringValue());
 			}
 		}
+		
+		runRec.close();
+		searcher.getIndexReader().close();
 	}
 }

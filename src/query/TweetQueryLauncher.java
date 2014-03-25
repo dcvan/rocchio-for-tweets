@@ -14,6 +14,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
 import common.exception.FileExistsException;
@@ -24,8 +25,7 @@ public class TweetQueryLauncher {
 	private final static int Q_NUM = 1000;
 	private final static String DOCNO_FN = "docno";
 	
-	private File indexDir;
-	private File resFile;
+	private Directory indexDir;
 	private IndexSearcher searcher;
 	private PrintWriter writer;
 	private Map<Integer, Set<String>> queryTerms;
@@ -42,12 +42,9 @@ public class TweetQueryLauncher {
 		if(out.exists())
 			throw new FileExistsException(res);
 		
-		indexDir = in;
-		resFile = out;
-		
-		searcher = new IndexSearcher(DirectoryReader.open(
-				FSDirectory.open(indexDir)));
-		writer = new PrintWriter(resFile);
+		indexDir = FSDirectory.open(in);
+		searcher = new IndexSearcher(DirectoryReader.open(indexDir));
+		writer = new PrintWriter(out);
 
 		this.collector = collector;
 		
@@ -109,5 +106,6 @@ public class TweetQueryLauncher {
 			throws IOException{
 		writer.close();
 		searcher.getIndexReader().close();
+		indexDir.close();
 	}
 }

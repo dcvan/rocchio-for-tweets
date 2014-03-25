@@ -118,6 +118,10 @@ public class TweetSearchEvaluator {
 			errMsg.append(line + '\n');
 		if(errMsg.length() > 0)
 			throw new TweetSearchEvaluatorException(errMsg.toString());
+		
+		p.getInputStream().close();
+		p.getOutputStream().close();
+		p.getErrorStream().close();
 	}
 	
 	/**

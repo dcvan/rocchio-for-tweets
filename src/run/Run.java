@@ -8,8 +8,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.LongField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -34,6 +36,7 @@ public class Run {
 	public final static String WITH_HASHTAGS = "with hashtags";
 	public final static String METRICS = "metrics";
 	public final static String IMPROVE = "improvement";
+	public final static String RUN_TYPE = "run type";
 	
 	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/run";
 
@@ -57,11 +60,23 @@ public class Run {
 	
 	public void go(RunConfig config, int iterNum) 
 			throws IOException, ParseException, org.apache.lucene.queryparser.classic.ParseException, InvalidParameterException, TweetSearchEvaluatorException, FileExistsException, WrongFileTypeException, InstanceExistsException, ResetException{
+		if(iterNum <= 0){
+			//TODO throw exception
+			return;
+		}
 		Document doc = new Document();
-		doc.add(new Field(DOC_NUM, String.valueOf(config.getDocNum()), genericType));
-		doc.add(new Field(TERM_NUM, String.valueOf(config.getTermNum()), genericType));
+		if(iterNum == 1){
+			doc.add(new Field(RUN_TYPE, "baseline run", genericType));
+		}else if(iterNum == 2){
+			doc.add(new Field(RUN_TYPE, "single iteration", genericType));
+		}else if(iterNum > 2){
+			doc.add(new Field(RUN_TYPE, "multiple iterations", genericType));
+		}
+			
+		doc.add(new IntField(DOC_NUM, config.getDocNum(), IntField.TYPE_STORED));
+		doc.add(new IntField(TERM_NUM, config.getTermNum(), IntField.TYPE_STORED));
 		doc.add(new Field(ANALYZER, config.getAnalyzer().getClass().getSimpleName(), genericType));
-		doc.add(new Field(STEP, String.valueOf(config.getStep()), genericType));
+		doc.add(new DoubleField(STEP, config.getStep(), DoubleField.TYPE_STORED));
 		doc.add(new Field(WITH_TERMS, String.valueOf(config.isWithTerms()), genericType));
 		doc.add(new Field(WITH_HASHTAGS, String.valueOf(config.isWithHashtags()), genericType));
 		
@@ -99,7 +114,6 @@ public class Run {
 			baseMetrics.putAll(curMetrics);
 		}
 		writer.addDocument(doc);
-		writer.commit();
 		search.close();
 	}
 	
