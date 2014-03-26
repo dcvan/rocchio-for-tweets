@@ -53,15 +53,14 @@ public class TweetQueryMaker {
 			throws org.apache.lucene.queryparser.classic.ParseException{
 		
 		for(Map.Entry<Integer, Feedback> entry : stat.getFeedbacks().entrySet()){
-			double boostBase = step * 10;
-//			double boostBase = 1.0;
+			double boostBase = step * 25;
 			int topno = entry.getKey();
 			StringBuilder sb = new StringBuilder(lastQueries.get(topno));
 
 			if(withTopTerms){
 				//add top M selected terms in top N retrieved tweets into the query
-				int cnt = 0;
 				Map<String, Float> termMap = entry.getValue().getTermScores();
+				int cnt = 0;
 				float cur = Collections.max(termMap.values());
 				
 				for(String term : termMap.keySet()){

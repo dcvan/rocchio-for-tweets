@@ -166,19 +166,6 @@ public class SearchTracker {
 		return res;
 	}
 	
-//	public boolean exists(String name) 
-//			throws IOException{
-//		IndexSearcher searcher = new IndexSearcher(
-//				DirectoryReader.open(
-//						FSDirectory.open(recDir)));
-//		Query q = new TermQuery(new Term(NAME, name));
-//		TopDocs hits = searcher.search(q, Integer.MAX_VALUE);
-//		if(hits.totalHits > 0) 
-//			return true;
-//		else 
-//			return false;
-//	}
-	
 	public void close() 
 			throws IOException{
 		writer.close();

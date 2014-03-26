@@ -37,8 +37,8 @@ public class Experiment {
 				new String[]{"P_30", "map", "ndcg"}, "num of iterations");
 		
 		Run run = new Run();
-		for(int i = 3; i <= 7; i ++)
-			run.go(config, i);
+//		for(int i = 3; i <= 7; i ++)
+//			run.go(config, i);
 		
 //		config.setNote("prepare data");
 //		for(int i = 5; i <= 25; i += 5){
@@ -48,49 +48,83 @@ public class Experiment {
 //				for(double k = 0.1; k < 1.0; k += 0.1){
 //					config.setStep(k);
 //					run.go(config, 2);
-//					config.setWithHashtags(true);
-//					run.go(config, 2);
-//					config.setWithTerms(false);
-//					run.go(config, 2);
-//					config.setWithHashtags(false);
-//					config.setWithTerms(true);
 //				}
 //			}
 //		}
-//		
-//		for(int i = 100; i <= 500; i += 100){
+		
+		config.setWithHashtags(true);
+		for(int i = 25; i <= 25; i += 5){
+			config.setDocNum(i);
+			for(int j = 5; j <= 25; j += 5){
+				config.setTermNum(j);
+				for(double k = 0.1; k < 1.0; k += 0.1){
+					config.setStep(k);
+					run.go(config, 2);
+				}
+			}
+		}
+		
+//		config.setWithTerms(false);
+//		for(int i = 5; i <= 25; i += 5){
 //			config.setDocNum(i);
 //			for(int j = 5; j <= 25; j += 5){
 //				config.setTermNum(j);
 //				for(double k = 0.1; k < 1.0; k += 0.1){
 //					config.setStep(k);
 //					run.go(config, 2);
-//					config.setWithHashtags(true);
-//					run.go(config, 2);
-//					config.setWithTerms(false);
-//					run.go(config, 2);
-//					config.setWithHashtags(false);
-//					config.setWithTerms(true);
 //				}
 //			}
 //		}
 //		
+//		config.setWithHashtags(false);
+//		config.setWithTerms(true);
+//		
+//		config.setStep(0.1);
+//		config.setNote("prepare data");
+//		for(int i = 100; i <= 500; i += 100){
+//			config.setDocNum(i);
+//			for(int j = 5; j <= 25; j += 5){
+//				config.setTermNum(j);
+//				run.go(config, 2);
+//			}
+//		}
+//		
+//		config.setWithHashtags(true);
+//		config.setStep(0.1);
+//		for(int i = 100; i <= 500; i += 100){
+//			config.setDocNum(i);
+//			for(int j = 5; j <= 25; j += 5){
+//				config.setTermNum(j);
+//				run.go(config, 2);
+//			}
+//		}
+//		
+//		config.setWithTerms(false);
+//		config.setStep(0.1);
+//		for(int i = 100; i <= 500; i += 100){
+//			config.setDocNum(i);
+//			for(int j = 5; j <= 25; j += 5){
+//				config.setTermNum(j);
+//				run.go(config, 2);
+//			}
+//		}
+//		
+//		config.setWithHashtags(false);
+//		config.setWithTerms(true);
+//		
 //		config.setDocNum(1000);
 //		for(int j = 5; j <= 25; j += 5){
 //			config.setTermNum(j);
-//			for(double k = 0.1; k < 1.0; k += 0.1){
-//				config.setStep(k);
-//				run.go(config, 2);
-//				config.setWithHashtags(true);
-//				run.go(config, 2);
-//				config.setWithTerms(false);
-//				run.go(config, 2);
-//				config.setWithHashtags(false);
-//				config.setWithTerms(true);
-//			}
+//			run.go(config, 2);
+//			config.setWithHashtags(true);
+//			run.go(config, 2);
+//			config.setWithTerms(false);
+//			run.go(config, 2);
+//			config.setWithHashtags(false);
+//			config.setWithTerms(true);
 //		}
-		
-		run.close();
+//		
+//		run.close();
 
 		Directory runRec = FSDirectory.open(new File(REC_BASE));
 		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(runRec));

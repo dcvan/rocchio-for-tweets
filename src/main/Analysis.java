@@ -13,8 +13,6 @@ import javax.swing.JPanel;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -24,11 +22,12 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 
 import de.erichseifert.gral.data.DataSeries;
 import de.erichseifert.gral.data.DataTable;
+import de.erichseifert.gral.data.comparators.Ascending;
 import de.erichseifert.gral.plots.XYPlot;
 import de.erichseifert.gral.plots.lines.DefaultLineRenderer2D;
 import de.erichseifert.gral.ui.InteractivePanel;
@@ -37,6 +36,17 @@ import de.erichseifert.gral.util.Location;
 
 public class Analysis {
 
+	private class plotConfig{
+		String title;
+		String legend;
+		double maxX;
+		String labelX;
+		double maxY;
+		String labelY;
+		
+	
+	}
+	
 	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/run";
 	private final static int WIDTH = 600;
 	private final static int HEIGHT = 700;
@@ -48,17 +58,98 @@ public class Analysis {
 	
 	public static void main(String[] args) 
 			throws IOException {
-//		IndexWriter writer = new IndexWriter(FSDirectory.open(new File(REC_BASE)),
-//				new IndexWriterConfig(Version.LUCENE_46,null));
-//		writer.deleteDocuments(new TermQuery(new Term("run type", "multiple iterations")));
-//		writer.close();
-//		plotStepTermNum(0.1, 1.0, 5, 25, 25, "ndcg");
-//		plotDocNumTermNum(5, 25, 5, 25, 0.1, "p@30");
+
+//		plotIterations("p@30");
+		plotStepDocNum(0.1, 1.0, 100, 500, 25, "ndcg");
+//		plotStepTermNum(0.1, 1.0, 5, 25, 5, "ndcg");
+//		plotDocNumTermNum(100, 500, 5, 25, 0.1, "p@30");
 //		plotTermNumDocNum(5, 25, 5, 25, 0.1, "p@30");
 //		plotTermNumDocNum(5, 25, 5, 25, 0.1, "ndcg");
 //		plotTermNumDocNum(5, 25, 5, 25, 0.1, "map");
 	}
 	
+	//only selected terms, 5 terms, 5 docs, 0.1 step by default
+	@SuppressWarnings("unchecked")
+	public static void plotIterations(String metric) 
+			throws IOException{
+		int maxIterNum = 0;
+		double maxImpr = 0;
+		Directory recDir = FSDirectory.open(new File(REC_BASE));
+		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(recDir));
+		Query stepQuery = NumericRangeQuery.newDoubleRange("step", 0.1, 0.1, true, true);
+		Query docQuery = NumericRangeQuery.newIntRange("document number", 5, 5, true, true);
+		Query termQuery = NumericRangeQuery.newIntRange("term number", 5, 5, true, true);
+		Query htagOccurQuery = new TermQuery(new Term("with hashtags", "false"));
+		Query termOccurQuery = new TermQuery(new Term("with selected terms", "true"));
+		
+		BooleanQuery single = new BooleanQuery();
+		single.add(stepQuery, BooleanClause.Occur.MUST);
+		single.add(docQuery, BooleanClause.Occur.MUST);
+		single.add(termQuery, BooleanClause.Occur.MUST);
+		single.add(htagOccurQuery, BooleanClause.Occur.MUST);
+		single.add(termOccurQuery, BooleanClause.Occur.MUST);
+		
+		Query multiple = new TermQuery(new Term("run type", "multiple iterations"));
+		BooleanQuery query = new BooleanQuery();
+		query.add(single, BooleanClause.Occur.SHOULD);
+		query.add(multiple, BooleanClause.Occur.SHOULD);
+		
+		TopDocs hits = searcher.search(query, Integer.MAX_VALUE);
+		DataTable table = new DataTable(Integer.class, Double.class);
+		table.add(0, 0.0);
+		for(ScoreDoc sd : hits.scoreDocs){
+			Document d = searcher.doc(sd.doc);
+			int iterNum = d.getValues("metrics").length - 1;
+			double impr = getValue(d.getField("improvement").stringValue(), metric);
+			maxIterNum = Math.max(iterNum, maxIterNum);
+			maxImpr = Math.max(impr, maxImpr);
+			table.add(iterNum, impr);
+		}
+		
+		table.sort(new Ascending(0));
+		DataSeries data = new DataSeries("5 Terms", table, 0, 1);
+		XYPlot plot = new XYPlot(data);
+	    plot.setInsets(new Insets2D.Double(TOP, LEFT, BOTTOM, RIGHT - 50.0));
+	    plot.getTitle().setText(metric.toUpperCase() + " Improvement(step=0.1, tweets#=5, terms#=5)");
+	    plot.getAxis(XYPlot.AXIS_X).setMin(0);
+	    plot.getAxis(XYPlot.AXIS_X).setMax(maxIterNum + 0.1);
+	    plot.getAxis(XYPlot.AXIS_Y).setMax(maxImpr + 0.01);
+	    plot.getAxisRenderer(XYPlot.AXIS_X).setLabel("Number of Iterations");
+	    plot.getAxisRenderer(XYPlot.AXIS_Y).setLabel(metric + " Improvement");
+	    plot.getAxisRenderer(XYPlot.AXIS_Y).setLabelDistance(Y_LABEL_DIST);
+	    plot.setLineRenderer(data, new DefaultLineRenderer2D());
+	    	
+	    float a = (float)Math.random(), 
+	    	  b = (float)Math.random(), 
+	    	  c = (float)Math.random();
+	    Color color = new Color(a, b, c);
+	    plot.getPointRenderer(data).setColor(color);
+	    plot.getLineRenderer(data).setColor(color);
+	    
+		JDialog dialog = new JDialog();
+		dialog.setTitle(metric.toUpperCase() + " Improvement(no hashtag, step=0.1, tweets#=5, terms#=5)");
+		dialog.setSize(HEIGHT, WIDTH);
+		dialog.setResizable(true);
+		
+		JPanel contentPane = new JPanel();
+		contentPane.setLayout(new BorderLayout());
+		dialog.setContentPane(contentPane);
+		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+		
+		contentPane.add(new InteractivePanel(plot), BorderLayout.CENTER);
+		dialog.setVisible(true);
+		
+		recDir.close();
+		searcher.getIndexReader().close();
+	}
+	
+	public static void plotHashtagDocNum(){
+		
+	}
+	
+	public static void plotHashtagTermNum(){
+		
+	}
 	
 	//only with terms and single iteration by default 
 	@SuppressWarnings("unchecked")
@@ -67,7 +158,8 @@ public class Analysis {
 		int maxDocNum = 0;
 		double maxImpr = 0;
 		
-		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(REC_BASE))));
+		Directory recDir = FSDirectory.open(new File(REC_BASE));
+		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(recDir));
 		Query stepQuery = NumericRangeQuery.newDoubleRange("step", step, step, true, true);
 		Query docQuery = NumericRangeQuery.newIntRange("document number", dnstart, dnend, true, true);
 		Query termQuery = NumericRangeQuery.newIntRange("term number", tnstart, tnend, true, true);
@@ -104,12 +196,15 @@ public class Analysis {
 		}
 		
 	    visualize(dsMap,
-	    		metric.toUpperCase() + " Improvement(no hashtags, weight descending step=" + step + ")", 
+	    		metric.toUpperCase() + " Improvement(no hashtags, step=" + step + ")", 
 	    		" Terms",
 	    		"Number of Feedback Tweets",
 	    		maxDocNum + 1, 
 	    		metric.toUpperCase() + " Improvement",
 	    		maxImpr + 0.01);
+	    
+	    recDir.close();
+	    searcher.getIndexReader().close();
 	}
 	
 	//only with terms and single iteration by default 
@@ -119,7 +214,8 @@ public class Analysis {
 		int maxTermNum = 0;
 		double maxImpr = 0;
 		
-		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(REC_BASE))));
+		Directory recDir = FSDirectory.open(new File(REC_BASE));
+		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(recDir));
 		Query stepQuery = NumericRangeQuery.newDoubleRange("step", step, step, true, true);
 		Query docQuery = NumericRangeQuery.newIntRange("document number", dnstart, dnend, true, true);
 		Query termQuery = NumericRangeQuery.newIntRange("term number", tnstart, tnend, true, true);
@@ -162,6 +258,9 @@ public class Analysis {
 	    		maxTermNum + 1,
 	    		metric.toUpperCase() + " Improvement",
 	    		maxImpr + 0.01);
+	    
+	    recDir.close();
+	    searcher.getIndexReader().close();
 	}
 	
 	//only with terms and single iteration by default 
@@ -171,7 +270,8 @@ public class Analysis {
 		double maxStep = 0;
 		double maxImpr = 0;
 		
-		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(REC_BASE))));
+		Directory recDir = FSDirectory.open(new File(REC_BASE));
+		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(recDir));
 		Query stepQuery = NumericRangeQuery.newDoubleRange("step", start, end, true, true);
 		Query docQuery = NumericRangeQuery.newIntRange("document number", dnstart, dnend, true, true);
 		Query termQuery = NumericRangeQuery.newIntRange("term number", termNum, termNum, true, true);
@@ -214,6 +314,9 @@ public class Analysis {
 	    		maxStep + 0.1,
 	    		metric.toUpperCase() + " Improvement",
 	    		maxImpr + 0.01);
+	    
+	    recDir.close();
+	    searcher.getIndexReader().close();
 	}
 	
 	//only with terms and single iteration by default 
@@ -223,7 +326,8 @@ public class Analysis {
 		double maxStep = 0;
 		double maxImpr = 0;
 		
-		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(REC_BASE))));
+		Directory recDir = FSDirectory.open(new File(REC_BASE));
+		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(recDir));
 		Query stepQuery = NumericRangeQuery.newDoubleRange("step", start, end, true, true);
 		Query docQuery = NumericRangeQuery.newIntRange("document number", docNum, docNum, true, true);
 		Query termQuery = NumericRangeQuery.newIntRange("term number", tnstart, tnend, true, true);
@@ -266,13 +370,18 @@ public class Analysis {
 	    		maxStep + 0.1,
 	    		metric.toUpperCase() + " Improvement",
 	    		maxImpr + 0.01);
+	    
+	    recDir.close();
+	    searcher.getIndexReader().close();
 	}
 	
 	private static void visualize(Map<?, DataTable> data, String title, String legend, String labelX, double maxX, String labelY, double maxY){
 		DataSeries[] dsList = new DataSeries[data.keySet().size()];
 		int i = 0;
 		for(Object dn : data.keySet()){
-			DataSeries ds = new DataSeries(String.valueOf(dn) + legend, data.get(dn), 0, 1);
+			DataTable table = data.get(dn);
+			table.sort(new Ascending(0));
+			DataSeries ds = new DataSeries(String.valueOf(dn) + legend, table, 0, 1);
 			dsList[i ++] = ds;
 		}
 		

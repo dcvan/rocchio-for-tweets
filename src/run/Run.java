@@ -114,6 +114,7 @@ public class Run {
 			baseMetrics.putAll(curMetrics);
 		}
 		writer.addDocument(doc);
+		writer.commit();
 		search.close();
 	}
 	

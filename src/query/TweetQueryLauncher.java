@@ -105,7 +105,6 @@ public class TweetQueryLauncher {
 	public void close() 
 			throws IOException{
 		writer.close();
-		searcher.getIndexReader().close();
 		indexDir.close();
 	}
 }
