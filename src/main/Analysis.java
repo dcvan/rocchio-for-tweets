@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import javax.swing.JDialog;
 import javax.swing.JPanel;
@@ -36,18 +35,26 @@ import de.erichseifert.gral.util.Location;
 
 public class Analysis {
 
-	private class plotConfig{
+	private static class plotConfig{
 		String title;
-		String legend;
 		double maxX;
+		double minX;
 		String labelX;
 		double maxY;
+		double minY;
 		String labelY;
 		
-	
+		plotConfig(String title, double maxX, double minX, String labelX, double maxY, double minY, String labelY){
+			this.title = title;
+			this.maxX = maxX;
+			this.minX = minX;
+			this.labelX = labelX;
+			this.maxY = maxY;
+			this.minY = minY;
+			this.labelY = labelY;
+		}
 	}
-	
-	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/run";
+
 	private final static int WIDTH = 600;
 	private final static int HEIGHT = 700;
 	private final static double TOP = 30.0;
@@ -55,12 +62,15 @@ public class Analysis {
 	private final static double BOTTOM = 70.0;
 	private final static double RIGHT = 125.0;
 	private final static double Y_LABEL_DIST = 2.0;
+	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/run";
+	private final static String CAT_WITH_HTAG = "hashtag";
+	private final static String CAT_WITH_TERM = "term";
+	private final static String CAT_WITH_BOTH = "term+hashtag";
 	
 	public static void main(String[] args) 
 			throws IOException {
 
 //		plotIterations("p@30");
-		plotStepDocNum(0.1, 1.0, 100, 500, 25, "ndcg");
 //		plotStepTermNum(0.1, 1.0, 5, 25, 5, "ndcg");
 //		plotDocNumTermNum(100, 500, 5, 25, 0.1, "p@30");
 //		plotTermNumDocNum(5, 25, 5, 25, 0.1, "p@30");
@@ -107,7 +117,7 @@ public class Analysis {
 		}
 		
 		table.sort(new Ascending(0));
-		DataSeries data = new DataSeries("5 Terms", table, 0, 1);
+		DataSeries data = new DataSeries("", table, 0, 1);
 		XYPlot plot = new XYPlot(data);
 	    plot.setInsets(new Insets2D.Double(TOP, LEFT, BOTTOM, RIGHT - 50.0));
 	    plot.getTitle().setText(metric.toUpperCase() + " Improvement(step=0.1, tweets#=5, terms#=5)");
@@ -143,65 +153,65 @@ public class Analysis {
 		searcher.getIndexReader().close();
 	}
 	
-	public static void plotHashtagDocNum(){
-		
-	}
-	
-	public static void plotHashtagTermNum(){
-		
-	}
-	
 	//only with terms and single iteration by default 
 	@SuppressWarnings("unchecked")
-	public static void plotDocNumTermNum(int dnstart, int dnend, int tnstart, int tnend, double step, String metric) 
+	public static void plotDocNum(int start, int end, int termNum, double step, String metric) 
 			throws IOException{
 		int maxDocNum = 0;
 		double maxImpr = 0;
+		double minImpr = 0;
 		
 		Directory recDir = FSDirectory.open(new File(REC_BASE));
 		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(recDir));
 		Query stepQuery = NumericRangeQuery.newDoubleRange("step", step, step, true, true);
-		Query docQuery = NumericRangeQuery.newIntRange("document number", dnstart, dnend, true, true);
-		Query termQuery = NumericRangeQuery.newIntRange("term number", tnstart, tnend, true, true);
+		Query docQuery = NumericRangeQuery.newIntRange("document number", start, end, true, true);
+		Query termQuery = NumericRangeQuery.newIntRange("term number", termNum, termNum, true, true);
 		Query runTypeQuery = new TermQuery(new Term("run type", "single iteration"));
-		Query htagOccurQuery = new TermQuery(new Term("with hashtags", "false"));
-		Query termOccurQuery = new TermQuery(new Term("with selected terms", "true"));
 		
 		BooleanQuery query = new BooleanQuery();
 		query.add(stepQuery, BooleanClause.Occur.MUST);
 		query.add(docQuery, BooleanClause.Occur.MUST);
 		query.add(termQuery, BooleanClause.Occur.MUST);
 		query.add(runTypeQuery,BooleanClause.Occur.MUST);
-		query.add(htagOccurQuery, BooleanClause.Occur.MUST);
-		query.add(termOccurQuery, BooleanClause.Occur.MUST);
 		
 		TopDocs hits = searcher.search(query, Integer.MAX_VALUE);
-		Map<Integer, DataTable> dsMap = new TreeMap<Integer, DataTable>();
+		Map<String, DataTable> dsMap = new HashMap<String, DataTable>();
 		for(ScoreDoc sd : hits.scoreDocs){
 			Document d = searcher.doc(sd.doc);
 			int docNum = d.getField("document number").numericValue().intValue();
-			int termNum = d.getField("term number").numericValue().intValue();
+			boolean isWithHtag = Boolean.parseBoolean(d.getField("with hashtags").stringValue());
+			boolean isWithTerm = Boolean.parseBoolean(d.getField("with selected terms").stringValue());
+			String category;
+			if(isWithTerm && isWithHtag)
+				category = CAT_WITH_BOTH;
+			else if(isWithTerm)
+				category = CAT_WITH_TERM;
+			else
+				category = CAT_WITH_HTAG;
 			double impr = getValue(d.getField("improvement").stringValue(), metric);
 			if(maxDocNum < docNum) maxDocNum = docNum;
 			if(maxImpr < impr) maxImpr = impr;
-			if(dsMap.containsKey(termNum)){
-				dsMap.get(termNum).add(docNum, impr);
+			if(minImpr > impr) minImpr = impr;
+			
+			if(dsMap.containsKey(category)){
+				dsMap.get(category).add(docNum, impr);
 			}else{
 				DataTable table = new DataTable(Integer.class, Double.class);
 				//insert a dummy tuple to show improvement between baseline run and following iterations
 				table.add(0, 0.0);
 				table.add(docNum, impr);
-				dsMap.put(termNum, table);
+				dsMap.put(category, table);
 			}
 		}
 		
-	    visualize(dsMap,
-	    		metric.toUpperCase() + " Improvement(no hashtags, step=" + step + ")", 
-	    		" Terms",
+	    visualize(dsMap, new plotConfig(
+	    		metric.toUpperCase() + " Improvement(term#=" + termNum + ",step=" + step + ")", 
+	    		maxDocNum + 1.0, 
+	    		0,
 	    		"Number of Feedback Tweets",
-	    		maxDocNum + 1, 
-	    		metric.toUpperCase() + " Improvement",
-	    		maxImpr + 0.01);
+	    		maxImpr + 0.01,
+	    		minImpr,
+	    		metric.toUpperCase() + " Improvement"));
 	    
 	    recDir.close();
 	    searcher.getIndexReader().close();
@@ -209,55 +219,62 @@ public class Analysis {
 	
 	//only with terms and single iteration by default 
 	@SuppressWarnings("unchecked")
-	public static void plotTermNumDocNum(int tnstart, int tnend, int dnstart, int dnend, double step, String metric) 
+	public static void plotTermNum(int start, int end, int docNum, double step, String metric) 
 			throws IOException{
 		int maxTermNum = 0;
 		double maxImpr = 0;
+		double minImpr = 0;
 		
 		Directory recDir = FSDirectory.open(new File(REC_BASE));
 		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(recDir));
 		Query stepQuery = NumericRangeQuery.newDoubleRange("step", step, step, true, true);
-		Query docQuery = NumericRangeQuery.newIntRange("document number", dnstart, dnend, true, true);
-		Query termQuery = NumericRangeQuery.newIntRange("term number", tnstart, tnend, true, true);
+		Query docQuery = NumericRangeQuery.newIntRange("document number", docNum, docNum, true, true);
+		Query termQuery = NumericRangeQuery.newIntRange("term number", start, end, true, true);
 		Query runTypeQuery = new TermQuery(new Term("run type", "single iteration"));
-		Query htagOccurQuery = new TermQuery(new Term("with hashtags", "false"));
-		Query termOccurQuery = new TermQuery(new Term("with selected terms", "true"));
 		
 		BooleanQuery query = new BooleanQuery();
 		query.add(stepQuery, BooleanClause.Occur.MUST);
 		query.add(docQuery, BooleanClause.Occur.MUST);
 		query.add(termQuery, BooleanClause.Occur.MUST);
 		query.add(runTypeQuery,BooleanClause.Occur.MUST);
-		query.add(htagOccurQuery, BooleanClause.Occur.MUST);
-		query.add(termOccurQuery, BooleanClause.Occur.MUST);
 		
 		TopDocs hits = searcher.search(query, Integer.MAX_VALUE);
-		Map<Integer, DataTable> dsMap = new TreeMap<Integer, DataTable>();
+		Map<String, DataTable> dsMap = new HashMap<String, DataTable>();
 		for(ScoreDoc sd : hits.scoreDocs){
 			Document d = searcher.doc(sd.doc);
-			int docNum = d.getField("document number").numericValue().intValue();
 			int termNum = d.getField("term number").numericValue().intValue();
+			boolean isWithHtag = Boolean.parseBoolean(d.getField("with hashtags").stringValue());
+			boolean isWithTerm = Boolean.parseBoolean(d.getField("with selected terms").stringValue());
+			String category;
+			if(isWithTerm && isWithHtag)
+				category = CAT_WITH_BOTH;
+			else if(isWithTerm)
+				category = CAT_WITH_TERM;
+			else
+				category = CAT_WITH_HTAG;
 			double impr = getValue(d.getField("improvement").stringValue(), metric);
 			if(maxTermNum < termNum) maxTermNum = termNum;
 			if(maxImpr < impr) maxImpr = impr;
-			if(dsMap.containsKey(docNum)){
-				dsMap.get(docNum).add(termNum, impr);
+			if(minImpr > impr) minImpr = impr;
+			if(dsMap.containsKey(category)){
+				dsMap.get(category).add(termNum, impr);
 			}else{
 				DataTable table = new DataTable(Integer.class, Double.class);
 				//insert a dummy tuple to show improvement between baseline run and following iterations
 				table.add(0, 0.0);
 				table.add(termNum, impr);
-				dsMap.put(docNum, table);
+				dsMap.put(category, table);
 			}
 		}
 		
-	    visualize(dsMap,
-	    		metric.toUpperCase() + " Improvement(no hashtags, weight descending step=" + step + ")", 
-	    		" Tweets",
-	    		"Number of Feedback Terms",
-	    		maxTermNum + 1,
-	    		metric.toUpperCase() + " Improvement",
-	    		maxImpr + 0.01);
+	    visualize(dsMap, new plotConfig(
+	    	    		metric.toUpperCase() + " Improvement(tweet#=" + docNum + ",step=" + step + ")", 
+	    	    		maxTermNum + 1.0, 
+	    	    		0,
+	    	    		"Number of Feedback Terms",
+	    	    		maxImpr + 0.01,
+	    	    		minImpr,
+	    	    		metric.toUpperCase() + " Improvement"));
 	    
 	    recDir.close();
 	    searcher.getIndexReader().close();
@@ -265,123 +282,75 @@ public class Analysis {
 	
 	//only with terms and single iteration by default 
 	@SuppressWarnings("unchecked")
-	public static void plotStepDocNum(double start, double end, int dnstart, int dnend, int termNum, String metric) 
+	public static void plotStep(double start, double end, int docNum, int termNum, String metric) 
 			throws IOException{
 		double maxStep = 0;
 		double maxImpr = 0;
-		
-		Directory recDir = FSDirectory.open(new File(REC_BASE));
-		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(recDir));
-		Query stepQuery = NumericRangeQuery.newDoubleRange("step", start, end, true, true);
-		Query docQuery = NumericRangeQuery.newIntRange("document number", dnstart, dnend, true, true);
-		Query termQuery = NumericRangeQuery.newIntRange("term number", termNum, termNum, true, true);
-		Query runTypeQuery = new TermQuery(new Term("run type", "single iteration"));
-		Query htagOccurQuery = new TermQuery(new Term("with hashtags", "false"));
-		Query termOccurQuery = new TermQuery(new Term("with selected terms", "true"));
-		
-		BooleanQuery query = new BooleanQuery();
-		query.add(stepQuery, BooleanClause.Occur.MUST);
-		query.add(docQuery, BooleanClause.Occur.MUST);
-		query.add(termQuery, BooleanClause.Occur.MUST);
-		query.add(runTypeQuery,BooleanClause.Occur.MUST);
-		query.add(htagOccurQuery, BooleanClause.Occur.MUST);
-		query.add(termOccurQuery, BooleanClause.Occur.MUST);
-		
-		TopDocs hits = searcher.search(query, Integer.MAX_VALUE);
-		Map<Integer, DataTable> dsMap = new TreeMap<Integer, DataTable>();
-		for(ScoreDoc sd : hits.scoreDocs){
-			Document d = searcher.doc(sd.doc);
-			int docNum = d.getField("document number").numericValue().intValue();
-			double step = d.getField("step").numericValue().doubleValue();
-			double impr = getValue(d.getField("improvement").stringValue(), metric);
-			if(maxStep < step) maxStep = step;
-			if(maxImpr < impr) maxImpr = impr;
-			if(dsMap.containsKey(docNum)){
-				dsMap.get(docNum).add(step, impr);
-			}else{
-				DataTable table = new DataTable(Double.class, Double.class);
-				//insert a dummy tuple to show improvement between baseline run and following iterations
-				table.add(0.0, 0.0);
-				table.add(step, impr);
-				dsMap.put(docNum, table);
-			}
-		}
-		
-	    visualize(dsMap,
-	    		metric.toUpperCase() + " Improvement(no hashtags, feedback terms number=" + termNum + ")", 
-	    		" Tweets",
-	    		"Weight Decreasing Step",
-	    		maxStep + 0.1,
-	    		metric.toUpperCase() + " Improvement",
-	    		maxImpr + 0.01);
-	    
-	    recDir.close();
-	    searcher.getIndexReader().close();
-	}
-	
-	//only with terms and single iteration by default 
-	@SuppressWarnings("unchecked")
-	public static void plotStepTermNum(double start, double end, int tnstart, int tnend, int docNum, String metric) 
-			throws IOException{
-		double maxStep = 0;
-		double maxImpr = 0;
+		double minImpr = 0;
 		
 		Directory recDir = FSDirectory.open(new File(REC_BASE));
 		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(recDir));
 		Query stepQuery = NumericRangeQuery.newDoubleRange("step", start, end, true, true);
 		Query docQuery = NumericRangeQuery.newIntRange("document number", docNum, docNum, true, true);
-		Query termQuery = NumericRangeQuery.newIntRange("term number", tnstart, tnend, true, true);
+		Query termQuery = NumericRangeQuery.newIntRange("term number", termNum, termNum, true, true);
 		Query runTypeQuery = new TermQuery(new Term("run type", "single iteration"));
-		Query htagOccurQuery = new TermQuery(new Term("with hashtags", "false"));
-		Query termOccurQuery = new TermQuery(new Term("with selected terms", "true"));
 		
 		BooleanQuery query = new BooleanQuery();
 		query.add(stepQuery, BooleanClause.Occur.MUST);
 		query.add(docQuery, BooleanClause.Occur.MUST);
 		query.add(termQuery, BooleanClause.Occur.MUST);
 		query.add(runTypeQuery,BooleanClause.Occur.MUST);
-		query.add(htagOccurQuery, BooleanClause.Occur.MUST);
-		query.add(termOccurQuery, BooleanClause.Occur.MUST);
 		
 		TopDocs hits = searcher.search(query, Integer.MAX_VALUE);
-		Map<Integer, DataTable> dsMap = new TreeMap<Integer, DataTable>();
+		Map<String, DataTable> dsMap = new HashMap<String, DataTable>();
 		for(ScoreDoc sd : hits.scoreDocs){
 			Document d = searcher.doc(sd.doc);
-			int termNum = d.getField("term number").numericValue().intValue();
 			double step = d.getField("step").numericValue().doubleValue();
+			boolean isWithHtag = Boolean.parseBoolean(d.getField("with hashtags").stringValue());
+			boolean isWithTerm = Boolean.parseBoolean(d.getField("with selected terms").stringValue());
+			String category;
+			if(isWithTerm && isWithHtag)
+				category = CAT_WITH_BOTH;
+			else if(isWithTerm)
+				category = CAT_WITH_TERM;
+			else
+				category = CAT_WITH_HTAG;
 			double impr = getValue(d.getField("improvement").stringValue(), metric);
 			if(maxStep < step) maxStep = step;
 			if(maxImpr < impr) maxImpr = impr;
-			if(dsMap.containsKey(termNum)){
-				dsMap.get(termNum).add(step, impr);
+			if(minImpr > impr) minImpr = impr;
+			if(dsMap.containsKey(docNum)){
+				dsMap.get(category).add(step, impr);
 			}else{
 				DataTable table = new DataTable(Double.class, Double.class);
 				//insert a dummy tuple to show improvement between baseline run and following iterations
 				table.add(0.0, 0.0);
 				table.add(step, impr);
-				dsMap.put(termNum, table);
+				dsMap.put(category, table);
 			}
 		}
 		
-	    visualize(dsMap,
-	    		metric.toUpperCase() + " Improvement(no hashtags, feedback tweets number=" + docNum + ")", 
-	    		" Terms",
+	    visualize(dsMap, new plotConfig(
+	    		metric.toUpperCase() + " Improvement(term#=" + termNum + ", tweet#=" + docNum +")", 
+	    		maxStep + 0.01, 
+	    		0,
 	    		"Weight Decreasing Step",
-	    		maxStep + 0.1,
-	    		metric.toUpperCase() + " Improvement",
-	    		maxImpr + 0.01);
+	    		maxImpr + 0.01,
+	    		minImpr,
+	    		metric.toUpperCase() + " Improvement"));
 	    
 	    recDir.close();
 	    searcher.getIndexReader().close();
 	}
 	
-	private static void visualize(Map<?, DataTable> data, String title, String legend, String labelX, double maxX, String labelY, double maxY){
+	
+	private static void visualize(Map<String, DataTable> data, plotConfig config){
 		DataSeries[] dsList = new DataSeries[data.keySet().size()];
 		int i = 0;
-		for(Object dn : data.keySet()){
-			DataTable table = data.get(dn);
+		for(String cat : data.keySet()){
+			DataTable table = data.get(cat);
 			table.sort(new Ascending(0));
-			DataSeries ds = new DataSeries(String.valueOf(dn) + legend, table, 0, 1);
+			DataSeries ds = new DataSeries(cat, table, 0, 1);
 			dsList[i ++] = ds;
 		}
 		
@@ -390,15 +359,17 @@ public class Analysis {
 		plot.setLegendLocation(Location.EAST);
 		plot.setLegendDistance(0.4);
 	    plot.setInsets(new Insets2D.Double(TOP, LEFT, BOTTOM, RIGHT));
-	    plot.getTitle().setText(title);
-	    plot.getAxis(XYPlot.AXIS_X).setMin(0);
-	    plot.getAxis(XYPlot.AXIS_X).setMax(maxX);
-	    plot.getAxis(XYPlot.AXIS_Y).setMin(0);
-	    plot.getAxis(XYPlot.AXIS_Y).setMax(maxY);
-	    plot.getAxisRenderer(XYPlot.AXIS_X).setIntersection(-Double.MAX_VALUE);
-	    plot.getAxisRenderer(XYPlot.AXIS_X).setLabel(labelX);
-	    plot.getAxisRenderer(XYPlot.AXIS_Y).setIntersection(-Double.MAX_VALUE);
-	    plot.getAxisRenderer(XYPlot.AXIS_Y).setLabel(labelY);
+	    plot.getTitle().setText(config.title);
+	    plot.getAxis(XYPlot.AXIS_X).setMin(config.minX);
+	    plot.getAxis(XYPlot.AXIS_X).setMax(config.maxX);
+	    plot.getAxisRenderer(XYPlot.AXIS_X).setLabel(config.labelX);
+	    if(config.minX > 0)
+	    	plot.getAxisRenderer(XYPlot.AXIS_X).setIntersection(-Double.MAX_VALUE);
+	    plot.getAxis(XYPlot.AXIS_Y).setMin(config.minY);
+	    plot.getAxis(XYPlot.AXIS_Y).setMax(config.maxY);
+	    if(config.minY > 0)
+	    	plot.getAxisRenderer(XYPlot.AXIS_Y).setIntersection(-Double.MAX_VALUE);
+	    plot.getAxisRenderer(XYPlot.AXIS_Y).setLabel(config.labelY);
 	    plot.getAxisRenderer(XYPlot.AXIS_Y).setLabelDistance(Y_LABEL_DIST);
 	    for(i = 0; i < dsList.length; i ++){
 	    	DataSeries ds = dsList[i];
@@ -413,7 +384,7 @@ public class Analysis {
 	    }
 	    
 		JDialog dialog = new JDialog();
-		dialog.setTitle(title);
+		dialog.setTitle(config.title);
 		dialog.setSize(HEIGHT, WIDTH);
 		dialog.setResizable(true);
 		
