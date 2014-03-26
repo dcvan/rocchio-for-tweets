@@ -37,23 +37,23 @@ public class Experiment {
 				new String[]{"P_30", "map", "ndcg"}, "num of iterations");
 		
 		Run run = new Run();
-//		for(int i = 3; i <= 7; i ++)
-//			run.go(config, i);
+		for(int i = 3; i <= 7; i ++)
+			run.go(config, i);
 		
-//		config.setNote("prepare data");
-//		for(int i = 5; i <= 25; i += 5){
-//			config.setDocNum(i);
-//			for(int j = 5; j <= 25; j += 5){
-//				config.setTermNum(j);
-//				for(double k = 0.1; k < 1.0; k += 0.1){
-//					config.setStep(k);
-//					run.go(config, 2);
-//				}
-//			}
-//		}
+		config.setNote("prepare data");
+		for(int i = 5; i <= 25; i += 5){
+			config.setDocNum(i);
+			for(int j = 5; j <= 25; j += 5){
+				config.setTermNum(j);
+				for(double k = 0.1; k < 1.0; k += 0.1){
+					config.setStep(k);
+					run.go(config, 2);
+				}
+			}
+		}
 		
 		config.setWithHashtags(true);
-		for(int i = 25; i <= 25; i += 5){
+		for(int i = 5; i <= 20; i += 5){
 			config.setDocNum(i);
 			for(int j = 5; j <= 25; j += 5){
 				config.setTermNum(j);
@@ -65,6 +65,7 @@ public class Experiment {
 		}
 		
 //		config.setWithTerms(false);
+//		config.setWithHashtags(true);
 //		for(int i = 5; i <= 25; i += 5){
 //			config.setDocNum(i);
 //			for(int j = 5; j <= 25; j += 5){

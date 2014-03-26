@@ -60,20 +60,20 @@ public class Analysis {
 	private final static double TOP = 30.0;
 	private final static double LEFT = 75.0;
 	private final static double BOTTOM = 70.0;
-	private final static double RIGHT = 125.0;
+	private final static double RIGHT = 160.0;
 	private final static double Y_LABEL_DIST = 2.0;
 	private final static String REC_BASE = System.getProperty("user.home") + "/Documents/run";
-	private final static String CAT_WITH_HTAG = "hashtag";
-	private final static String CAT_WITH_TERM = "term";
-	private final static String CAT_WITH_BOTH = "term+hashtag";
+	private final static String CAT_WITH_HTAG = "Hashtag";
+	private final static String CAT_WITH_TERM = "Term";
+	private final static String CAT_WITH_BOTH = "Term + Hashtag";
 	
 	public static void main(String[] args) 
 			throws IOException {
 
-//		plotIterations("p@30");
-//		plotStepTermNum(0.1, 1.0, 5, 25, 5, "ndcg");
+		plotIterations("map");
+//		plotStep(0.1, 1.0, 5, 5, "ndcg");
 //		plotDocNumTermNum(100, 500, 5, 25, 0.1, "p@30");
-//		plotTermNumDocNum(5, 25, 5, 25, 0.1, "p@30");
+//		plotTermNum(5, 25, 25, 0.1, "ndcg");
 //		plotTermNumDocNum(5, 25, 5, 25, 0.1, "ndcg");
 //		plotTermNumDocNum(5, 25, 5, 25, 0.1, "map");
 	}
@@ -205,7 +205,7 @@ public class Analysis {
 		}
 		
 	    visualize(dsMap, new plotConfig(
-	    		metric.toUpperCase() + " Improvement(term#=" + termNum + ",step=" + step + ")", 
+	    		metric.toUpperCase() + " Improvement(term#=" + termNum + ", step=" + step + ")", 
 	    		maxDocNum + 1.0, 
 	    		0,
 	    		"Number of Feedback Tweets",
@@ -268,7 +268,7 @@ public class Analysis {
 		}
 		
 	    visualize(dsMap, new plotConfig(
-	    	    		metric.toUpperCase() + " Improvement(tweet#=" + docNum + ",step=" + step + ")", 
+	    	    		metric.toUpperCase() + " Improvement(tweet#=" + docNum + ", step=" + step + ")", 
 	    	    		maxTermNum + 1.0, 
 	    	    		0,
 	    	    		"Number of Feedback Terms",
@@ -319,7 +319,7 @@ public class Analysis {
 			if(maxStep < step) maxStep = step;
 			if(maxImpr < impr) maxImpr = impr;
 			if(minImpr > impr) minImpr = impr;
-			if(dsMap.containsKey(docNum)){
+			if(dsMap.containsKey(category)){
 				dsMap.get(category).add(step, impr);
 			}else{
 				DataTable table = new DataTable(Double.class, Double.class);

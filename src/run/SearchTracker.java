@@ -24,6 +24,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
@@ -173,8 +174,8 @@ public class SearchTracker {
 	
 	private ArrayList<Statistics> getStat(Query q) 
 			throws IOException{
-		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(
-				FSDirectory.open(recDir)));
+		Directory dir = FSDirectory.open(recDir);
+		IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(dir));
 		TopDocs hits = searcher.search(q, UNLIMITED);
 		ArrayList<Statistics> statList = new ArrayList<Statistics>();
 		for(ScoreDoc sd : hits.scoreDocs){
@@ -216,6 +217,8 @@ public class SearchTracker {
 			}
 			
 			statList.add(stat);
+			dir.close();
+			searcher.getIndexReader().close();
 		}
 		
 		return statList;
